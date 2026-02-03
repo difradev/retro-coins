@@ -1,4 +1,4 @@
 import { db } from "./db";
-import { comments } from "./schemas/comments";
+import { games } from "./schemas/games";
 
-export { comments, db };
+export { games, db };
