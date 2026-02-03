@@ -2,6 +2,9 @@
   "name": "retro-coins",
   "version": "0.1.0",
   "private": true,
+  "author": {
+    "name": "Federico Di Francesco"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
