@@ -1,9 +1,6 @@
-import { comments, db } from "@/lib/database";
-import Searchbar from "./components/Searchbar";
+import Searchbar from './components/Searchbar'
 
 export default async function Home() {
-  const allComments = await db.select().from(comments);
-  console.log(allComments);
   return (
     <div>
       <main>
@@ -11,5 +8,5 @@ export default async function Home() {
         <Searchbar />
       </main>
     </div>
-  );
+  )
 }
