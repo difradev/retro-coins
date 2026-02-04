@@ -3,7 +3,7 @@
 export default function Searchbar() {
   return (
     <div>
-      <p>SEARCHBAR COMPONENT!</p>
+      <input type="text" placeholder="Search games!" />
     </div>
   )
 }
