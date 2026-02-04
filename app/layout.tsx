@@ -1,10 +1,16 @@
-import type { Metadata } from 'next'
 import './globals.css'
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 
 export const metadata: Metadata = {
   title: 'Retro Coins',
   description: 'TBD',
 }
+
+const inter = Inter({
+  subsets: ['latin'],
+  display: 'swap',
+})
 
 export default function RootLayout({
   children,
@@ -13,7 +19,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`antialiased`}>
+      <body className={`antialiased ${inter.className}`}>
         <div className="h-[calc(100vh-56px)]">{children}</div>
       </body>
     </html>
