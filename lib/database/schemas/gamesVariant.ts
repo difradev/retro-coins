@@ -1,14 +1,21 @@
-import { integer, pgEnum, pgTable, text } from 'drizzle-orm/pg-core'
-
-export const condtionsEnum = pgEnum('conditions', [
-  'loose',
-  'complete',
-  'saled',
-])
+import { integer, pgTable } from 'drizzle-orm/pg-core'
+import { conditions } from './conditions'
+import { games } from './games'
+import { platforms } from './platforms'
+import { regions } from './regions'
 
 export const gamesVariant = pgTable('gamesVariant', {
-  id: integer().primaryKey().notNull(),
-  gameId: integer().notNull(), // TODO: FIXARE CON FOREIGN KEY
-  region: text().notNull(),
-  condition: condtionsEnum().notNull(),
+  id: integer().primaryKey(),
+  gameId: integer()
+    .notNull()
+    .references(() => games.id),
+  platformId: integer()
+    .notNull()
+    .references(() => platforms.id),
+  conditionId: integer()
+    .notNull()
+    .references(() => conditions.id),
+  regionId: integer()
+    .notNull()
+    .references(() => regions.id),
 })

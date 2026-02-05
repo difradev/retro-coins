@@ -1,13 +1,17 @@
+import { searchSuggestions } from './actions/search-suggestions'
 import Header from './components/header'
 import Searchbar from './components/searchbar'
 
-export default async function Home() {
+export default function Home() {
   return (
     <main className="w-full h-full">
       <Header />
-      <div className="flex justify-center items-center h-full w-full">
+      <form
+        action={searchSuggestions}
+        className="w-full flex justify-center items-center h-full"
+      >
         <Searchbar />
-      </div>
+      </form>
     </main>
   )
 }
