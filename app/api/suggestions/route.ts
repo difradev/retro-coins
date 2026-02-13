@@ -1,12 +1,8 @@
 import { db } from '@/lib/database'
+import { BaseModel } from '@/lib/models/base-model'
+import { GamesSuggestionResponse } from '@/lib/models/games-suggestion'
 import { gamesDictionary } from '@/lib/database/schemas/gamesDictionary'
 import { NextRequest } from 'next/server'
-
-export type GamesSuggestionResponse = {
-  id: number
-  slug: string
-  name: string
-}
 
 export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl
@@ -18,12 +14,17 @@ export async function GET(request: NextRequest) {
     })
   }
 
-  // TODO: Rivedere la query!
+  const normalizedQuery = query.split(' ').join('-').toLowerCase()
   const data = (await db.select().from(gamesDictionary)).filter((gd) =>
-    gd.slug.includes(query),
-  ) as GamesSuggestionResponse[]
+    gd.slug.includes(normalizedQuery),
+  )
 
-  return new Response(JSON.stringify({ success: true, data }), {
-    status: 200,
-  })
+  return new Response(
+    JSON.stringify({ success: true, data } as BaseModel<
+      GamesSuggestionResponse[]
+    >),
+    {
+      status: 200,
+    },
+  )
 }

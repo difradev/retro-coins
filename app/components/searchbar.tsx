@@ -4,6 +4,8 @@ import { ArrowTurnDownLeftIcon } from '@heroicons/react/24/solid'
 import { useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { useDebouncedCallback } from 'use-debounce'
+import { searchSuggestions } from '../actions'
+import { GamesSuggestionResponse } from '@/lib/models/games-suggestion'
 
 type AutocompleteOptions = {
   slug: string
@@ -21,9 +23,8 @@ export default function Searchbar() {
   )
 
   const handleDebounce = useDebouncedCallback(async (query) => {
-    const normalizedQuery = query.split(' ').join('-').toLowerCase()
     // TODO: Capire come cachare la response!
-    const response = await fetch(`/api/suggestions?q=${normalizedQuery}`)
+    const response = await fetch(`/api/suggestions?q=${query}`)
     try {
       return response.json()
     } catch (error) {
@@ -38,7 +39,7 @@ export default function Searchbar() {
     if (minimalQueryLength) {
       const response = await handleDebounce(query)
       if (response && response.success) {
-        const suggestions = response.data.map((d: any) => {
+        const suggestions = response.data.map((d: GamesSuggestionResponse) => {
           return {
             slug: d.slug,
             label: d.name,
@@ -56,7 +57,7 @@ export default function Searchbar() {
     setIsOpenSuggestion(false)
 
     if (inputQueryRef.current) {
-      inputQueryRef.current.value = suggestion.label
+      inputQueryRef.current.value = suggestion.slug
       setIsSelectValueFromSuggestion(true)
     }
   }
@@ -64,26 +65,31 @@ export default function Searchbar() {
   return (
     <div className="flex items-center transition-all w-1/3">
       <div className="flex flex-col gap-2 relative w-full">
-        <div className="flex gap-2">
-          <input
-            ref={inputQueryRef}
-            type="text"
-            name="query"
-            required
-            placeholder={
-              pending ? 'Searching..' : 'Search retrogame price now!'
-            }
-            onChange={(e) => handleSearchInput(e.target.value)}
-            className="p-4 rounded-md border border-foreground w-full outline-none text-xl text-foreground"
-          />
-          <button
-            className="outline-none border-none bg-blue-700 text-white rounded-md px-6 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
-            disabled={!isSelectValueFromSuggestion}
-            type="submit"
-          >
-            Search!
-          </button>
-        </div>
+        <form
+          action={searchSuggestions}
+          onSubmit={() => setIsSelectValueFromSuggestion(false)}
+        >
+          <div className="flex gap-2">
+            <input
+              ref={inputQueryRef}
+              type="text"
+              name="query"
+              required
+              placeholder={
+                pending ? 'Searching..' : 'Search retrogame price now!'
+              }
+              onChange={(e) => handleSearchInput(e.target.value)}
+              className="p-4 rounded-md border border-foreground w-full outline-none text-xl text-foreground"
+            />
+            <button
+              className="outline-none border-none bg-blue-700 text-white rounded-md px-6 cursor-pointer disabled:opacity-60 disabled:cursor-not-allowed"
+              disabled={!isSelectValueFromSuggestion}
+              type="submit"
+            >
+              Search!
+            </button>
+          </div>
+        </form>
         {isOpenSuggestion && (
           <div className="absolute top-full mt-1 w-full bg-white border border-foreground rounded-md shadow-lg z-10">
             <div className="p-2">
@@ -106,10 +112,10 @@ export default function Searchbar() {
           </div>
         )}
         <div
-          className={`text-xs transition-all duration-200 ease-in absolute ${
+          className={`text-xs transition-all top-full duration-200 ease-in absolute ${
             isSelectValueFromSuggestion
-              ? 'opacity-100 translate-y-1 top-full mt-2'
-              : 'opacity-0 translate-y'
+              ? 'opacity-100 translate-y-1 mt-2'
+              : 'opacity-0 translate-y-1'
           }`}
         >
           <p className="flex gap-2 items-center ">
