@@ -24,10 +24,11 @@ model GameVariant {
   conditionId Int
   regionId    Int
 
-  game      Game      @relation(fields: [gameId], references: [id])
-  platform  Platform  @relation(fields: [platformId], references: [id])
-  condition Condition @relation(fields: [conditionId], references: [id])
-  region    Region    @relation(fields: [regionId], references: [id])
+  game           Game            @relation(fields: [gameId], references: [id])
+  platform       Platform        @relation(fields: [platformId], references: [id])
+  condition      Condition       @relation(fields: [conditionId], references: [id])
+  region         Region          @relation(fields: [regionId], references: [id])
+  priceSnapshots PriceSnapshot[]
 }
 
 model Platform {
@@ -58,6 +59,17 @@ model SearchDemand {
   createdAt DateTime @default(now())
   processed Boolean  @default(false)
   count7d   Int
+}
+
+model PriceSnapshot {
+  id            Int @id @default(autoincrement())
+  gameVariantId Int
+
+  price      Int
+  source     String
+  lastUpdate DateTime
+
+  gameVariant GameVariant @relation(fields: [gameVariantId], references: [id])
 }
 
 enum PlatformCode {

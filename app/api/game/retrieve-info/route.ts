@@ -1,5 +1,5 @@
 /**
- * RECUPERA LE INFO E I DATI PER UN GIOCO IN INSERIMENTO.
+ * RECUPERA LE INFO E I DATI PER UN GIOCO DA INSERIRE.
  *
  * Questo endpoint si occuperà di recuperare tutte le informazioni di un gioco
  * partendo da IGDB fino ad arrivare al prezzo.
@@ -8,6 +8,12 @@
  * le informazioni di soli quei giochi che sono stati ricercati, ma non sono disponibili sul database.
  *
  * Protetto da API_SECRET, non potrà mai essere invocato da nessun client se non dal batch di recupero info.
+ *
+ * TODO:
+ * - migliorare tipizzazione;
+ * - migliorare gestione degli errori (errori più parlanti);
+ * - impostare un logger;
+ * - implementare getPrice;
  */
 
 import {
