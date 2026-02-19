@@ -1,0 +1,83 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Game {
+  id           Int           @id @default(autoincrement())
+  title        String        @unique
+  year         Int
+  image        String
+  description  String
+  rate         Int
+  gameVariants GameVariant[]
+}
+
+model GameVariant {
+  id          Int @id @default(autoincrement())
+  platformId  Int
+  gameId      Int
+  conditionId Int
+  regionId    Int
+
+  game      Game      @relation(fields: [gameId], references: [id])
+  platform  Platform  @relation(fields: [platformId], references: [id])
+  condition Condition @relation(fields: [conditionId], references: [id])
+  region    Region    @relation(fields: [regionId], references: [id])
+}
+
+model Platform {
+  id           Int           @id @default(autoincrement())
+  code         PlatformCode
+  name         String
+  gameVariants GameVariant[]
+}
+
+model Condition {
+  id           Int           @id @default(autoincrement())
+  code         ConditionCode
+  name         String
+  gameVariants GameVariant[]
+}
+
+model Region {
+  id            Int           @id @default(autoincrement())
+  code          RegionCode
+  name          String
+  gamesVariants GameVariant[]
+}
+
+model SearchDemand {
+  id        Int      @id @default(autoincrement())
+  rawQuery  String
+  searchKey String
+  createdAt DateTime @default(now())
+  processed Boolean  @default(false)
+  count7d   Int
+}
+
+enum PlatformCode {
+  GB
+  GBC
+  GBA
+  NES
+  SNES
+  SMS
+  SMD
+}
+
+enum ConditionCode {
+  LOOSE
+  CIB
+  SEALED
+}
+
+enum RegionCode {
+  PAL
+  NTSC
+  JAP
+}
