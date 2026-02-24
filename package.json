@@ -15,6 +15,7 @@
     "@prisma/adapter-pg": "^7.4.0",
     "@prisma/client": "^7.4.0",
     "dotenv": "^17.3.1",
+    "ebay-oauth-nodejs-client": "^1.2.2",
     "next": "16.1.6",
     "pg": "^8.18.0",
     "react": "19.2.3",
@@ -23,6 +24,7 @@
   "devDependencies": {
     "@faker-js/faker": "^10.3.0",
     "@tailwindcss/postcss": "^4",
+    "@types/ebay-oauth-nodejs-client": "^1.2.4",
     "@types/node": "^20",
     "@types/pg": "^8.16.0",
     "@types/react": "^19",

@@ -68,7 +68,6 @@ model PriceSnapshot {
   price      Int
   source     String
   lastUpdate DateTime
-
   gameVariant GameVariant @relation(fields: [gameVariantId], references: [id])
 }
 

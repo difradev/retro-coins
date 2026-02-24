@@ -22,9 +22,10 @@ import {
   RegionCode,
 } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
+import EbayAuthToken from 'ebay-oauth-nodejs-client'
 import { NextRequest, NextResponse } from 'next/server'
 
-type TwitchTokenResponse = {
+type TokenResponse = {
   access_token: string
   expires_in: number
   token_type: string
@@ -35,6 +36,8 @@ const TWITCH_OAUTH_URL = process.env.TWITCH_OAUTH_URL
 const TWITCH_API_CLIENT_ID = process.env.TWITCH_API_CLIENT_ID
 const TWITCH_API_SECRET = process.env.TWITCH_API_SECRET
 const IGDB_ENDPOINT = process.env.IGDB_ENDPOINT
+const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID
+const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET
 
 const platformFromSearchKey = new Set([
   'gb',
@@ -55,8 +58,10 @@ const excludeWordsFromSearchKey = new Set([
   ...platformFromSearchKey,
 ])
 
-let cachedTwitchToken: TwitchTokenResponse
+let cachedTwitchToken: TokenResponse
+let cachedEbayToken: TokenResponse
 let expiryTwitchTokenTimestamp: number
+let expiryEbayTokenTimestamp: number
 
 export async function POST(
   req: NextRequest,
@@ -86,7 +91,7 @@ export async function POST(
       },
     )
   }
-
+  await getGamePrice('')
   let searchDemands: { id: number; searchKey: string; count7d: number }[] = []
   try {
     searchDemands = await prisma.searchDemand.findMany({
@@ -112,9 +117,23 @@ export async function POST(
         `${TWITCH_OAUTH_URL}?client_id=${TWITCH_API_CLIENT_ID}&client_secret=${TWITCH_API_SECRET}&grant_type=client_credentials`,
         { method: 'POST' },
       )
-      const response = (await igdbAuth.json()) as TwitchTokenResponse
+      const response = (await igdbAuth.json()) as TokenResponse
       cachedTwitchToken = response
       expiryTwitchTokenTimestamp = Date.now() + response.expires_in * 1000
+    }
+
+    if (!cachedEbayToken || Date.now() > expiryEbayTokenTimestamp) {
+      const ebayAuthToken = new EbayAuthToken({
+        clientId: EBAY_CLIENT_ID!,
+        clientSecret: EBAY_CLIENT_SECRET!,
+        redirectUri: '/api/game/retrieve-info',
+      })
+
+      const token = (await ebayAuthToken.getApplicationToken(
+        'PRODUCTION',
+      )) as unknown as TokenResponse
+      cachedEbayToken = token
+      expiryEbayTokenTimestamp = Date.now() + token.expires_in * 1000
     }
   } catch (error) {
     console.error('Error while trying to login to Twitch!', error)
@@ -195,7 +214,7 @@ async function getGameInfoFromIGDB(title: string): Promise<void> {
     headers: {
       Accept: 'application/json',
       'Client-ID': TWITCH_API_CLIENT_ID!,
-      Authorization: `Bearer 86av6asztos98lnumg0uy1mkj126i7`,
+      Authorization: `Bearer ${cachedTwitchToken.access_token}`,
     },
   })
 
@@ -259,7 +278,7 @@ async function fetchCover(cover_id: number) {
     headers: {
       Accept: 'application/json',
       'Client-ID': TWITCH_API_CLIENT_ID!,
-      Authorization: `Bearer 86av6asztos98lnumg0uy1mkj126i7`,
+      Authorization: `Bearer ${cachedTwitchToken.access_token}`,
     },
   })
   return gameCoverResponse.json()
