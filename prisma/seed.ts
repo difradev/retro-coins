@@ -22,6 +22,7 @@ const createManyPlatforms = async () =>
       { code: 'SMS', name: 'Sega Master System' },
       { code: 'SMD', name: 'Sega Mega Drive' },
     ],
+    skipDuplicates: true,
   })
 
 const createManyConditions = async () =>
@@ -31,6 +32,7 @@ const createManyConditions = async () =>
       { code: 'CIB', name: 'Complete' },
       { code: 'SEALED', name: 'Sealed' },
     ],
+    skipDuplicates: true,
   })
 
 const createManyRegions = async () =>
@@ -40,6 +42,7 @@ const createManyRegions = async () =>
       { code: 'NTSC', name: 'NTSC' },
       { code: 'JAP', name: 'Japan' },
     ],
+    skipDuplicates: true,
   })
 
 const createSearchDemands = async () =>
@@ -80,9 +83,9 @@ const gameData: Prisma.GameCreateInput[] = [
 ]
 
 export async function main() {
-  createManyPlatforms()
-  createManyConditions()
-  createManyRegions()
+  await createManyPlatforms()
+  await createManyConditions()
+  await createManyRegions()
   // for (const g of gameData) {
   //   await prisma.game.create({ data: g })
   // }

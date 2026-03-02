@@ -65,9 +65,9 @@ model PriceSnapshot {
   id            Int @id @default(autoincrement())
   gameVariantId Int
 
-  price      Int
-  source     String
-  lastUpdate DateTime
+  price       Int
+  source      String
+  lastUpdate  DateTime    @default(now())
   gameVariant GameVariant @relation(fields: [gameVariantId], references: [id])
 }
 

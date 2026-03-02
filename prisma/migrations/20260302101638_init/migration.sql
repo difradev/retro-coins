@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "PriceSnapshot" ALTER COLUMN "lastUpdate" SET DEFAULT CURRENT_TIMESTAMP;

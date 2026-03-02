@@ -1,0 +1,23 @@
+@import 'tailwindcss';
+
+@layer base {
+  body {
+    background-color: #ffffff;
+    background-image:
+      repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 40px,
+        rgba(0, 0, 0, 0.15) 40px,
+        rgba(0, 0, 0, 0.15) 42px
+      ),
+      repeating-linear-gradient(
+        90deg,
+        transparent,
+        transparent 40px,
+        rgba(0, 0, 0, 0.15) 40px,
+        rgba(0, 0, 0, 0.15) 42px
+      );
+    background-size: 42px 42px;
+  }
+}

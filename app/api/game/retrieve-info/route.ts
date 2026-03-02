@@ -22,6 +22,7 @@ import {
   RegionCode,
 } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
+import { manageGamePrice } from '@/app/lib/utils/manage-game-price'
 import EbayAuthToken from 'ebay-oauth-nodejs-client'
 import { NextRequest, NextResponse } from 'next/server'
 
@@ -38,6 +39,7 @@ const TWITCH_API_SECRET = process.env.TWITCH_API_SECRET
 const IGDB_ENDPOINT = process.env.IGDB_ENDPOINT
 const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID
 const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET
+const EBAY_ENDPOINT = process.env.EBAY_ENDPOINT
 
 const platformFromSearchKey = new Set([
   'gb',
@@ -91,7 +93,7 @@ export async function POST(
       },
     )
   }
-  await getGamePrice('')
+
   let searchDemands: { id: number; searchKey: string; count7d: number }[] = []
   try {
     searchDemands = await prisma.searchDemand.findMany({
@@ -129,11 +131,9 @@ export async function POST(
         redirectUri: '/api/game/retrieve-info',
       })
 
-      const token = (await ebayAuthToken.getApplicationToken(
-        'PRODUCTION',
-      )) as unknown as TokenResponse
-      cachedEbayToken = token
-      expiryEbayTokenTimestamp = Date.now() + token.expires_in * 1000
+      const token = await ebayAuthToken.getApplicationToken('PRODUCTION')
+      cachedEbayToken = JSON.parse(token) as TokenResponse
+      expiryEbayTokenTimestamp = Date.now() + cachedEbayToken.expires_in * 1000
     }
   } catch (error) {
     console.error('Error while trying to login to Twitch!', error)
@@ -159,6 +159,7 @@ export async function POST(
         batch.map(({ searchKey }) => getGameInfoFromIGDB(searchKey)),
       )
 
+      // Cambia lo stato dei giochi processati
       await prisma.searchDemand.update({
         where: { id: batch[i].id },
         data: { processed: true },
@@ -229,7 +230,7 @@ async function getGameInfoFromIGDB(title: string): Promise<void> {
 
   const [cover, price] = await Promise.allSettled([
     fetchCover(gameData[0]?.cover),
-    getGamePrice(title),
+    getGamePrice(title, normalizedTitle),
   ])
 
   await prisma.$transaction(async (tx) => {
@@ -258,7 +259,7 @@ async function getGameInfoFromIGDB(title: string): Promise<void> {
       )
     }
 
-    await tx.gameVariant.create({
+    const gameVariant = await tx.gameVariant.create({
       data: {
         gameId: game.id,
         platformId: platform.id,
@@ -267,7 +268,15 @@ async function getGameInfoFromIGDB(title: string): Promise<void> {
       },
     })
 
-    // TODO: Scrivere il prezzo recuperato su PriceSnapshot!
+    if (price.status === 'fulfilled') {
+      await tx.priceSnapshot.create({
+        data: {
+          gameVariantId: gameVariant.id,
+          source: 'ebay',
+          price: price.value.median,
+        },
+      })
+    }
   })
 }
 
@@ -284,7 +293,31 @@ async function fetchCover(cover_id: number) {
   return gameCoverResponse.json()
 }
 
-async function getGamePrice(searchKey: string): Promise<any> {}
+async function getGamePrice(
+  searchKey: string,
+  normalizedTitle: string,
+): Promise<{ median: number; count: number; outliers: number }> {
+  console.log(`[getGamePrice] Search price for: ${searchKey}`)
+  const marketplaceEndpoint = 'buy/browse/v1/item_summary/search'
+
+  try {
+    const marketplaceResponse = await fetch(
+      `${EBAY_ENDPOINT}/${marketplaceEndpoint}?q=${searchKey}&limit=100&filter=buyingOptions:{FIXED_PRICE}`,
+      {
+        headers: {
+          Authorization: `Bearer ${cachedEbayToken.access_token}`,
+          'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+        },
+      },
+    )
+    const items = await marketplaceResponse.json()
+    const gamePrice = manageGamePrice(items.itemSummaries, normalizedTitle)
+    return gamePrice
+  } catch (error) {
+    console.error('Error fetching price from eBay!', error)
+    throw new Error('There was a problem')
+  }
+}
 
 function normalizeGameTitle(searchKey: string): string {
   return searchKey
