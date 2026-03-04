@@ -9,7 +9,8 @@ datasource db {
 
 model Game {
   id           Int           @id @default(autoincrement())
-  title        String        @unique
+  title        String
+  slug         String        @unique
   year         Int
   image        String
   description  String
@@ -69,6 +70,12 @@ model PriceSnapshot {
   source      String
   lastUpdate  DateTime    @default(now())
   gameVariant GameVariant @relation(fields: [gameVariantId], references: [id])
+}
+
+model GameSuggestion {
+  id    Int    @id @default(autoincrement())
+  title String @unique
+  code  String
 }
 
 enum PlatformCode {

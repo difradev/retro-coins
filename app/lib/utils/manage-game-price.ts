@@ -1,22 +1,24 @@
 /**
  * Questo metodo si deve occupare di:
  * X filtrare tramite regex il titolo delle info recuperate da eBay
- * - filtare la regione (PAL)
- * - calcolo mediana
- * - rimozione outlier (IQR Method)
+ * X filtrare la condizione (LOOSE, CIB, SEALED)
+ * X calcolo mediana
+ * X rimozione outlier (IQR Method)
  */
 
+import { ConditionCode } from '@/app/generated/prisma/enums'
 import { EbayItemsSearch } from '../types/EbayItemsSearch'
 
 export function manageGamePrice(
   items: EbayItemsSearch[],
   gameTitle: string,
+  conditionCode: ConditionCode,
 ): {
   median: number
   count: number
   outliers: number
 } {
-  if (!items) throw new Error()
+  if (!items) throw Error()
 
   try {
     const escapedTitle = gameTitle
@@ -26,12 +28,19 @@ export function manageGamePrice(
     const validGamesWithPrices = items.filter((i) => {
       const title = i.title.toLowerCase()
       const regex = new RegExp(`\\b${escapedTitle}\\b(?![\\s.\\-:,]*\\d)`, 'i')
-      
-      // Exclude graded/sealed items (usually much more expensive)
-      const excludeKeywords = ['wata', 'graded', 'vga', 'cgc']
-      const hasExcludedKeyword = excludeKeywords.some(keyword => title.includes(keyword))
-      
-      return regex.test(title) && !hasExcludedKeyword
+
+      // Always exclude graded items (different price category)
+      const alwaysExclude = ['wata', 'graded', 'vga', 'cgc']
+      const hasExcludedKeyword = alwaysExclude.some((keyword) =>
+        title.includes(keyword),
+      )
+
+      if (!regex.test(title) || hasExcludedKeyword) {
+        return false
+      }
+
+      // Filter by condition
+      return matchesCondition(title, conditionCode)
     })
 
     // Extract and sort prices
@@ -82,4 +91,113 @@ export function manageGamePrice(
   } catch (error) {
     throw new Error('Problem with manage game prices')
   }
+}
+
+/**
+ * Match eBay listing titles based on condition keywords
+ */
+function matchesCondition(title: string, condition: ConditionCode): boolean {
+  const lowerTitle = title.toLowerCase()
+
+  switch (condition) {
+    case 'LOOSE':
+      // Include: loose, cart/cartridge only, game only
+      // Exclude: complete, cib, box, sealed, new (in sealed context)
+      const looseInclude = [
+        'loose',
+        'cart only',
+        'cartridge only',
+        'game only',
+        'no box',
+        'no manual',
+      ]
+      const looseExclude = [
+        'complete',
+        'cib',
+        'c.i.b',
+        'boxed',
+        'sealed',
+        'new',
+        'with box',
+        'w/ box',
+      ]
+
+      const hasLooseKeyword = looseInclude.some((kw) => lowerTitle.includes(kw))
+      const hasLooseExclude = looseExclude.some((kw) => lowerTitle.includes(kw))
+
+      // If explicitly marked as loose, include
+      // If no explicit condition mentioned, include as default
+      // If has exclude keywords, reject
+      return (
+        hasLooseKeyword ||
+        (!hasLooseExclude && !hasCompleteOrSealedKeyword(lowerTitle))
+      )
+
+    case 'CIB':
+      // Include: complete, cib, boxed, with box/manual
+      // Exclude: loose, sealed, cart only
+      const cibInclude = [
+        'complete',
+        'cib',
+        'c.i.b',
+        'boxed',
+        'with box',
+        'w/ box',
+        'box & manual',
+        'box and manual',
+      ]
+      const cibExclude = [
+        'loose',
+        'cart only',
+        'cartridge only',
+        'game only',
+        'no box',
+        'sealed',
+        'brand new',
+      ]
+
+      const hasCibKeyword = cibInclude.some((kw) => lowerTitle.includes(kw))
+      const hasCibExclude = cibExclude.some((kw) => lowerTitle.includes(kw))
+
+      return hasCibKeyword && !hasCibExclude
+
+    case 'SEALED':
+      // Include: sealed, new, factory sealed, unopened
+      // Exclude: opened, used, loose
+      const sealedInclude = [
+        'sealed',
+        'brand new',
+        'factory sealed',
+        'unopened',
+        'new sealed',
+        'bnib',
+        'nib',
+      ]
+      const sealedExclude = ['opened', 'open', 'used', 'loose', 'no seal']
+
+      const hasSealedKeyword = sealedInclude.some((kw) =>
+        lowerTitle.includes(kw),
+      )
+      const hasSealedExclude = sealedExclude.some((kw) =>
+        lowerTitle.includes(kw),
+      )
+
+      return hasSealedKeyword && !hasSealedExclude
+
+    default:
+      return true
+  }
+}
+
+function hasCompleteOrSealedKeyword(title: string): boolean {
+  const keywords = [
+    'complete',
+    'cib',
+    'c.i.b',
+    'sealed',
+    'boxed',
+    'with box',
+    'w/ box',
+  ]
+  return keywords.some((kw) => title.includes(kw))
 }

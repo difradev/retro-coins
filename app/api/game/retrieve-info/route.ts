@@ -24,7 +24,7 @@ import {
 import prisma from '@/app/lib/database/prisma'
 import { manageGamePrice } from '@/app/lib/utils/manage-game-price'
 import EbayAuthToken from 'ebay-oauth-nodejs-client'
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 
 type TokenResponse = {
   access_token: string
@@ -32,7 +32,6 @@ type TokenResponse = {
   token_type: string
 }
 
-const API_SECRET = process.env.API_SECRET
 const TWITCH_OAUTH_URL = process.env.TWITCH_OAUTH_URL
 const TWITCH_API_CLIENT_ID = process.env.TWITCH_API_CLIENT_ID
 const TWITCH_API_SECRET = process.env.TWITCH_API_SECRET
@@ -43,12 +42,20 @@ const EBAY_ENDPOINT = process.env.EBAY_ENDPOINT
 
 const platformFromSearchKey = new Set([
   'gb',
-  'smd',
-  'sms',
   'gba',
   'nes',
   'snes',
+  'sms',
+  'smd',
 ])
+
+const platformMap = new Map<string, string>()
+  .set('gb', 'Game Boy')
+  .set('gba', 'Game Boy Advance')
+  .set('nes', 'Nintendo Entertainment System')
+  .set('snes', 'Super Nintendo Entertainment System')
+  .set('sms', 'Sega Master System')
+  .set('smd', 'Sega Mega Drive')
 
 const gameConditionsFromSearchKey = new Set(['loose', 'cib', 'sealed'])
 
@@ -65,35 +72,7 @@ let cachedEbayToken: TokenResponse
 let expiryTwitchTokenTimestamp: number
 let expiryEbayTokenTimestamp: number
 
-export async function POST(
-  req: NextRequest,
-): Promise<NextResponse<ResponseWrapper<null>>> {
-  const authentication = req.headers.get('Authorization')
-
-  if (!API_SECRET || !authentication) {
-    return NextResponse.json(
-      {
-        message: 'Unauthorized!',
-      },
-      {
-        status: 403,
-      },
-    )
-  }
-
-  const token = authentication.replace('Bearer ', '')
-
-  if (token !== API_SECRET) {
-    return NextResponse.json(
-      {
-        message: 'Invalid token!',
-      },
-      {
-        status: 401,
-      },
-    )
-  }
-
+export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
   let searchDemands: { id: number; searchKey: string; count7d: number }[] = []
   try {
     searchDemands = await prisma.searchDemand.findMany({
@@ -155,15 +134,10 @@ export async function POST(
       const batch = searchDemands
         .slice(i, i + gamesPerBatch)
         .filter((s) => s.count7d >= 10)
-      await Promise.all(
-        batch.map(({ searchKey }) => getGameInfoFromIGDB(searchKey)),
-      )
 
-      // Cambia lo stato dei giochi processati
-      await prisma.searchDemand.update({
-        where: { id: batch[i].id },
-        data: { processed: true },
-      })
+      await Promise.all(
+        batch.map(({ searchKey, id }) => getGameInfoAndPrice(searchKey, id)),
+      )
 
       // Delay tra ogni chiamata
       if (i + gamesPerBatch < searchDemands.length) {
@@ -192,8 +166,13 @@ export async function POST(
   )
 }
 
-async function getGameInfoFromIGDB(title: string): Promise<void> {
-  console.log(`[getGameInfoFromIGDB] Processing: ${title}`)
+async function getGameInfoAndPrice(
+  title: string,
+  searchId: number,
+): Promise<void> {
+  console.log(
+    `[getGameInfoAndPrice] Processing: ${title} and searchId ${searchId}`,
+  )
 
   const normalizedTitle = normalizeGameTitle(title)
   const conditionCode = getConditionCode(title)
@@ -201,13 +180,19 @@ async function getGameInfoFromIGDB(title: string): Promise<void> {
   const regionCode = getRegionCode(title)
 
   console.log(
-    `[getGameInfoFromIGDB] Parsed - normalized: ${normalizedTitle}, platform: ${platformCode}, condition: ${conditionCode}, region: ${regionCode}`,
+    `[getGameInfoAndPrice] Parsed - normalized: ${normalizedTitle}, platform: ${platformCode}, condition: ${conditionCode}, region: ${regionCode}`,
   )
 
   const request = ` fields name,rating,cover,first_release_date,summary;
                     where slug = "${normalizedTitle}";
                     limit 1;
                   `
+
+  const gameAlreadyPresent = await prisma.game.findUnique({
+    where: { slug: normalizedTitle },
+  })
+
+  if (gameAlreadyPresent) return
 
   const searchGameResponse = await fetch(`${IGDB_ENDPOINT}/v4/games`, {
     method: 'POST',
@@ -223,20 +208,21 @@ async function getGameInfoFromIGDB(title: string): Promise<void> {
 
   if (!gameData.length) {
     console.warn(
-      `[getGameInfoFromIGDB] Game not found on IGDB: ${normalizedTitle}`,
+      `[getGameInfoAndPrice] Game not found on IGDB: ${normalizedTitle}`,
     )
     return
   }
 
   const [cover, price] = await Promise.allSettled([
     fetchCover(gameData[0]?.cover),
-    getGamePrice(title, normalizedTitle),
+    getGamePrice(normalizedTitle, platformCode, regionCode, conditionCode),
   ])
 
   await prisma.$transaction(async (tx) => {
     const game = await tx.game.create({
       data: {
         title: gameData[0].name,
+        slug: normalizedTitle,
         year: new Date(gameData[0].first_release_date * 1000).getFullYear(),
         image:
           cover.status === 'fulfilled'
@@ -277,6 +263,11 @@ async function getGameInfoFromIGDB(title: string): Promise<void> {
         },
       })
     }
+
+    await tx.searchDemand.update({
+      where: { id: searchId },
+      data: { processed: true },
+    })
   })
 }
 
@@ -294,24 +285,37 @@ async function fetchCover(cover_id: number) {
 }
 
 async function getGamePrice(
-  searchKey: string,
   normalizedTitle: string,
+  platformCode: PlatformCode,
+  regionCode: RegionCode,
+  conditionCode: ConditionCode,
 ): Promise<{ median: number; count: number; outliers: number }> {
-  console.log(`[getGamePrice] Search price for: ${searchKey}`)
+  const marketplace = getMarketplaceByRegion(regionCode)
+  const platform = platformMap.get(platformCode.toLowerCase()) || ''
+
+  // Simplified query: only title + platform (no region/condition terms)
+  const searchQuery =
+    `${normalizedTitle.replaceAll('-', ' ')} ${platform}`.trim()
+  const encodedQuery = encodeURIComponent(searchQuery)
+
+  console.log(`[getGamePrice] Search: "${searchQuery}" on ${marketplace} for ${conditionCode}`)
+
   const marketplaceEndpoint = 'buy/browse/v1/item_summary/search'
+  // categoryIds=139973 is "Video Games & Consoles > Video Games"
+  const filters = 'buyingOptions:{FIXED_PRICE},categoryIds:{139973}'
 
   try {
     const marketplaceResponse = await fetch(
-      `${EBAY_ENDPOINT}/${marketplaceEndpoint}?q=${searchKey}&limit=100&filter=buyingOptions:{FIXED_PRICE}`,
+      `${EBAY_ENDPOINT}/${marketplaceEndpoint}?q=${encodedQuery}&limit=100&filter=${filters}`,
       {
         headers: {
           Authorization: `Bearer ${cachedEbayToken.access_token}`,
-          'X-EBAY-C-MARKETPLACE-ID': 'EBAY_US',
+          'X-EBAY-C-MARKETPLACE-ID': marketplace,
         },
       },
     )
     const items = await marketplaceResponse.json()
-    const gamePrice = manageGamePrice(items.itemSummaries, normalizedTitle)
+    const gamePrice = manageGamePrice(items.itemSummaries, normalizedTitle, conditionCode)
     return gamePrice
   } catch (error) {
     console.error('Error fetching price from eBay!', error)
@@ -348,4 +352,13 @@ function getRegionCode(searchKey: string): RegionCode {
     .filter((s) => gameRegionsFromSearchKey.has(s))
     .join('')
     .toUpperCase() as RegionCode
+}
+
+function getMarketplaceByRegion(regionCode: RegionCode): string {
+  const marketplaceMap: Record<RegionCode, string> = {
+    PAL: 'EBAY_GB',
+    NTSC: 'EBAY_US',
+    JAP: 'EBAY_US',
+  }
+  return marketplaceMap[regionCode] || 'EBAY_US'
 }

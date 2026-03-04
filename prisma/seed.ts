@@ -49,17 +49,61 @@ const createSearchDemands = async () =>
   await prisma.searchDemand.createMany({
     data: [
       {
-        searchKey: 'pokemon-red-pal-cib',
-        rawQuery: 'Pokemon Red PAL CIB',
+        searchKey: 'pokemon-red-version-gb-pal-cib',
+        rawQuery: 'Pokemon Red Version GB PAL CIB',
         createdAt: faker.date.anytime(),
         count7d: 11,
       },
       {
-        searchKey: 'sonic-the-hedgehog-pal-loose',
-        rawQuery: 'Sonic The Hedgehog PAL LOOSE',
+        searchKey: 'sonic-the-hedgehog-sms-pal-loose',
+        rawQuery: 'Sonic The Hedgehog SMS PAL LOOSE',
         createdAt: faker.date.anytime(),
-        count7d: 2,
+        count7d: 22,
       },
+      {
+        searchKey: 'nintendo-world-championships-nes-pal-cib',
+        rawQuery: 'Nintendo World Championships NES PAL CIB',
+        createdAt: faker.date.anytime(),
+        count7d: 12,
+      },
+    ],
+  })
+
+const createGamesSuggestion = async () =>
+  await prisma.gameSuggestion.createMany({
+    data: [
+      { title: 'Super Mario Bros.', code: 'super-mario-bros' },
+      {
+        title: 'Nintendo World Championships',
+        code: 'nintendo-world-championships',
+      },
+      { title: 'Stadium Events', code: 'stadium-events' },
+      { title: 'The Legend of Zelda', code: 'the-legend-of-zelda' },
+      { title: 'Pokémon Red', code: 'pokemon-red' },
+      { title: 'Pokémon Blue', code: 'pokemon-blue' },
+      {
+        title: 'Sonic the Hedgehog',
+        code: 'sonic-the-hedgehog',
+      },
+      { title: 'Chrono Trigger', code: 'chrono-trigger' },
+      { title: 'EarthBound', code: 'earthbound' },
+      { title: 'Little Samson', code: 'little-samson' },
+      {
+        title: 'Nintendo Campus Challenge',
+        code: 'nintendo-campus-challenge',
+      },
+      { title: 'Final Fantasy', code: 'final-fantasy' },
+      { title: 'Star Fox 2', code: 'star-fox-2' },
+      {
+        title: 'Ecco the Dolphin',
+        code: 'ecco-the-dolphin',
+      },
+      { title: 'Tetris', code: 'tetris' },
+      { title: 'Castlevania', code: 'castlevania' },
+      { title: 'Mega Man 2', code: 'mega-man-2' },
+      { title: 'Metroid', code: 'metroid' },
+      { title: 'Secret of Mana', code: 'secret-of-mana' },
+      { title: 'Donkey Kong Country', code: 'donkey-kong-country' },
     ],
   })
 
@@ -83,13 +127,14 @@ const gameData: Prisma.GameCreateInput[] = [
 ]
 
 export async function main() {
-  await createManyPlatforms()
-  await createManyConditions()
-  await createManyRegions()
+  // await createManyPlatforms()
+  // await createManyConditions()
+  // await createManyRegions()
   // for (const g of gameData) {
   //   await prisma.game.create({ data: g })
   // }
-  // createSearchDemands()
+  createSearchDemands()
+  // createGamesSuggestion()
 }
 
 main()

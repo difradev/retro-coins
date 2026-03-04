@@ -20,7 +20,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${libreCaslonDisplay.className} antialiased text-gray-900`}
+        className={`${libreCaslonDisplay.className} antialiased text-gray-900 transition-all`}
       >
         {children}
       </body>
