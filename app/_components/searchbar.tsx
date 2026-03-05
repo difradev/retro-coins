@@ -1,3 +1,10 @@
+/**
+ * TODO
+ *
+ * - Implementare ruota di caricamento quando si inizia a scrivere
+ * - Implementare tooltip sulle piattaforme
+ */
+
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -19,9 +26,9 @@ type SearchbarPros = {
 }
 
 const placeholderTextsMap = new Map<number, string>()
-  .set(0, 'Search awesome 8-bit game..')
-  .set(1, 'Sonic the hedgehog')
-  .set(2, 'Pokémon Blue')
+  .set(0, 'Sonic the hedgehog')
+  .set(1, 'Pokémon Blue')
+  .set(2, 'Chrono Trigger')
 
 export default function SearchBar({
   platforms,
@@ -39,9 +46,8 @@ export default function SearchBar({
   const [gameSelected, setGameSelected] = useState<boolean>(false)
   const [isOpenSuggestions, setIsOpenSuggestions] = useState<boolean>(false)
   const [suggestions, setSuggestions] = useState<GameSuggestion[]>([])
-  const [searchPlaceholderTexts, setSearchPlaceholderTexts] = useState<string>(
-    'Search awesome 8-bit game..',
-  )
+  const [searchPlaceholderTexts, setSearchPlaceholderTexts] =
+    useState<string>('Pokémon Blue')
 
   useEffect(() => {
     if (searchBarRef.current) {
@@ -154,7 +160,7 @@ export default function SearchBar({
               onChange={(e) => handleSearchbar(e.target.value)}
               type="text"
               className="w-full border-2 border-blue-600 outline-none p-4 rounded-md placeholder:text-xl placeholder:text-gray-500 text-2xl"
-              placeholder={searchPlaceholderTexts}
+              placeholder={`Search for ${searchPlaceholderTexts}`}
             />
             <button
               type="submit"
@@ -166,7 +172,7 @@ export default function SearchBar({
               }
               className="py-2 px-4 text-xl bg-red-600 text-neutral-100 rounded-md uppercase font-black cursor-pointer hover:opacity-80 disabled:cursor-not-allowed"
             >
-              Search
+              START!
             </button>
           </div>
           {isOpenSuggestions ? (

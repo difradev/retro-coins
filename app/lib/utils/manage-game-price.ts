@@ -29,7 +29,6 @@ export function manageGamePrice(
       const title = i.title.toLowerCase()
       const regex = new RegExp(`\\b${escapedTitle}\\b(?![\\s.\\-:,]*\\d)`, 'i')
 
-      // Always exclude graded items (different price category)
       const alwaysExclude = ['wata', 'graded', 'vga', 'cgc']
       const hasExcludedKeyword = alwaysExclude.some((keyword) =>
         title.includes(keyword),
@@ -39,11 +38,9 @@ export function manageGamePrice(
         return false
       }
 
-      // Filter by condition
       return matchesCondition(title, conditionCode)
     })
 
-    // Extract and sort prices
     const prices = validGamesWithPrices
       .map((item) => parseFloat(item.price.value))
       .filter((price) => !isNaN(price))
@@ -53,28 +50,19 @@ export function manageGamePrice(
       return { median: 0, count: 0, outliers: 0 }
     }
 
-    // Calculate Q1 and Q3 for IQR Method
     const q1Index = Math.floor(prices.length * 0.25)
     const q3Index = Math.floor(prices.length * 0.75)
     const q1 = prices[q1Index]
     const q3 = prices[q3Index]
     const iqr = q3 - q1
 
-    // Define outlier boundaries
     const lowerBound = q1 - 1.5 * iqr
     const upperBound = q3 + 1.5 * iqr
 
-    // Remove outliers
     const pricesWithoutOutliers = prices.filter(
       (price) => price >= lowerBound && price <= upperBound,
     )
 
-    // console.log('Prices before outlier removal:', prices.length)
-    // console.log('Prices after outlier removal:', pricesWithoutOutliers.length)
-    // console.log('Q1:', q1, 'Q3:', q3, 'IQR:', iqr)
-    // console.log('Bounds:', lowerBound, '-', upperBound)
-
-    // Calculate median
     const medianIndex = Math.floor(pricesWithoutOutliers.length / 2)
     const median =
       pricesWithoutOutliers.length % 2 === 0

@@ -1,3 +1,9 @@
+/**
+ * TODO
+ * 
+ * - Inserire più ricercati;
+ */
+
 import Hero from '../_components/hero'
 import SearchBar from '../_components/searchbar'
 import {
@@ -12,7 +18,7 @@ export default async function Home() {
   const regions = await getAllRegions()
 
   return (
-    <div className="h-screen flex flex-col items-center gap-11 w-4xl mx-auto">
+    <div className="h-full flex flex-col items-center gap-6 w-4xl mx-auto">
       <Hero />
       <SearchBar
         platforms={platforms!}

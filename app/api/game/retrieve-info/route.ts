@@ -218,58 +218,62 @@ async function getGameInfoAndPrice(
     getGamePrice(normalizedTitle, platformCode, regionCode, conditionCode),
   ])
 
-  await prisma.$transaction(async (tx) => {
-    const game = await tx.game.create({
-      data: {
-        title: gameData[0].name,
-        slug: normalizedTitle,
-        year: new Date(gameData[0].first_release_date * 1000).getFullYear(),
-        image:
-          cover.status === 'fulfilled'
-            ? `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${cover.value.image_id}`
-            : '',
-        rate: gameData[0].rating,
-        description: gameData[0].summary,
-      },
-    })
-
-    const [platform, condition, region] = await Promise.all([
-      tx.platform.findFirst({ where: { code: platformCode } }),
-      tx.condition.findFirst({ where: { code: conditionCode } }),
-      tx.region.findFirst({ where: { code: regionCode } }),
-    ])
-
-    if (!platform || !condition || !region) {
-      throw new Error(
-        `Missing references: platform=${!!platform}, condition=${!!condition}, region=${!!region}`,
-      )
-    }
-
-    const gameVariant = await tx.gameVariant.create({
-      data: {
-        gameId: game.id,
-        platformId: platform.id,
-        conditionId: condition.id,
-        regionId: region.id,
-      },
-    })
-
-    if (price.status === 'fulfilled') {
-      await tx.priceSnapshot.create({
+  if (price.status === 'fulfilled' && price.value.count > 0) {
+    // Scrivo sul database solo se ho trovato un prezzo!
+    await prisma.$transaction(async (tx) => {
+      const game = await tx.game.create({
         data: {
-          gameVariantId: gameVariant.id,
-          source: 'ebay',
-          price: price.value.median,
-          lastUpdate: new Date(),
+          title: gameData[0].name,
+          slug: normalizedTitle,
+          year: new Date(gameData[0].first_release_date * 1000).getFullYear(),
+          image:
+            cover.status === 'fulfilled'
+              ? `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${cover.value[0].image_id}.jpg`
+              : '',
+          rate: gameData[0].rating,
+          description: gameData[0].summary,
         },
       })
-    }
 
-    await tx.searchDemand.update({
-      where: { id: searchId },
-      data: { processed: true },
+      const [platform, condition, region] = await Promise.all([
+        tx.platform.findFirst({ where: { code: platformCode } }),
+        tx.condition.findFirst({ where: { code: conditionCode } }),
+        tx.region.findFirst({ where: { code: regionCode } }),
+      ])
+
+      if (!platform || !condition || !region) {
+        throw new Error(
+          `Missing references: platform=${!!platform}, condition=${!!condition}, region=${!!region}`,
+        )
+      }
+
+      const gameVariant = await tx.gameVariant.create({
+        data: {
+          gameId: game.id,
+          platformId: platform.id,
+          conditionId: condition.id,
+          regionId: region.id,
+        },
+      })
+
+      if (price.status === 'fulfilled') {
+        await tx.priceSnapshot.create({
+          data: {
+            gameVariantId: gameVariant.id,
+            source: 'ebay',
+            price: price.value.median,
+            // currency: regionCode === 'PAL' ? 'EUR' : 'USD'
+            lastUpdate: new Date(),
+          },
+        })
+      }
+
+      await tx.searchDemand.update({
+        where: { id: searchId },
+        data: { processed: true },
+      })
     })
-  })
+  }
 }
 
 async function fetchCover(cover_id: number) {
@@ -309,7 +313,7 @@ async function getGamePrice(
 
   try {
     const marketplaceResponse = await fetch(
-      `${EBAY_ENDPOINT}/${marketplaceEndpoint}?q=${encodedQuery}&limit=100&filter=${filters}`,
+      `${EBAY_ENDPOINT}/${marketplaceEndpoint}?q=${encodedQuery}&limit=150&filter=${filters}`,
       {
         headers: {
           Authorization: `Bearer ${cachedEbayToken.access_token}`,

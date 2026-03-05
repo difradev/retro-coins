@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { Libre_Caslon_Display } from 'next/font/google'
-import './globals.css'
 import { Toaster } from 'react-hot-toast'
+import './globals.css'
 
 const libreCaslonDisplay = Libre_Caslon_Display({
   variable: '--font-caslon-display',
@@ -24,7 +24,7 @@ export default function RootLayout({
         className={`${libreCaslonDisplay.className} antialiased text-gray-900 transition-all`}
       >
         <Toaster position="bottom-center" />
-        {children}
+        <div className="h-screen flex w-4xl mx-auto">{children}</div>
       </body>
     </html>
   )

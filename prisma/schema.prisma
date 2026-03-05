@@ -68,8 +68,9 @@ model PriceSnapshot {
 
   price       Int
   source      String
-  lastUpdate  DateTime    @default(now())
-  gameVariant GameVariant @relation(fields: [gameVariantId], references: [id])
+  currency    CurrencyCode
+  lastUpdate  DateTime     @default(now())
+  gameVariant GameVariant  @relation(fields: [gameVariantId], references: [id])
 }
 
 model GameSuggestion {
@@ -98,4 +99,9 @@ enum RegionCode {
   PAL
   NTSC
   JAP
+}
+
+enum CurrencyCode {
+  USD
+  EUR
 }

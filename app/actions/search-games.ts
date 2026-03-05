@@ -1,3 +1,9 @@
+/**
+ * TODO
+ *
+ * - Perfezionare la ricera includendo anche piattaforma, condizione e regione
+ */
+
 'use server'
 
 import { redirect } from 'next/navigation'
@@ -42,7 +48,7 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
         { platform: { code: platform } },
       ],
     },
-    select: { id: true },
+    select: { id: true, priceSnapshots: true },
   })
 
   if (!game) {
@@ -76,5 +82,21 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
     }
   }
 
-  return redirect(`game/${game.id}`)
+  try {
+    await prisma.searchDemand.update({
+      where: {
+        searchKey: `${searchQuery}-${selectedPlatform.toLowerCase()}-${selectedRegion.toLowerCase()}-${selectedCondition.toLowerCase()}`,
+      },
+      data: { count7d: { increment: 1 } },
+    })
+  } catch (error) {
+    console.error('Error while increment search demand game!', error)
+    return {
+      success: false,
+      error: 'Search Demand error!',
+      errorCode: ErrorSearchGamesEnum.GeneralError,
+    }
+  }
+
+  return redirect(`/game/${game.id}`)
 }
