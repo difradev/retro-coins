@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import toast from 'react-hot-toast'
 import { searchGames } from '../actions/search-games'
 import {
   Condition,
@@ -16,6 +17,11 @@ type SearchbarPros = {
   conditions: Condition[]
   regions: Region[]
 }
+
+const placeholderTextsMap = new Map<number, string>()
+  .set(0, 'Search awesome 8-bit game..')
+  .set(1, 'Sonic the hedgehog')
+  .set(2, 'Pokémon Blue')
 
 export default function SearchBar({
   platforms,
@@ -33,12 +39,22 @@ export default function SearchBar({
   const [gameSelected, setGameSelected] = useState<boolean>(false)
   const [isOpenSuggestions, setIsOpenSuggestions] = useState<boolean>(false)
   const [suggestions, setSuggestions] = useState<GameSuggestion[]>([])
+  const [searchPlaceholderTexts, setSearchPlaceholderTexts] = useState<string>(
+    'Search awesome 8-bit game..',
+  )
 
   useEffect(() => {
     if (searchBarRef.current) {
       searchBarRef.current.focus()
     }
-  }, [searchBarRef])
+
+    const intervalId = setInterval(() => {
+      const randomIndex = Math.floor(Math.random() * placeholderTextsMap.size)
+      setSearchPlaceholderTexts(placeholderTextsMap.get(randomIndex)!)
+    }, 4000)
+
+    return () => clearInterval(intervalId)
+  }, [])
 
   const ripristineChips = () => {
     setSelectedCondition(null)
@@ -97,14 +113,32 @@ export default function SearchBar({
       !result.success &&
       result.errorCode === ErrorSearchGamesEnum.GameNotFound
     ) {
-      // TODO: Alert with message info!
+      toast(
+        'Game not found! Check back later to see if prices are available.',
+        {
+          style: {
+            border: '1px solid #193cb8',
+            padding: '16px',
+            color: '#193cb8',
+            fontSize: '18px',
+            fontFamily: 'monospace',
+          },
+          icon: '',
+        },
+      )
     } else if (
       !result.success &&
       result.errorCode === ErrorSearchGamesEnum.GeneralError
     ) {
-      // TODO: Alert with general error!
-    } else if (result.success) {
-      console.log('redirect to', result.gameId)
+      toast.error('Oops!! There was a problem', {
+        style: {
+          border: '1px solid #193cb8',
+          padding: '16px',
+          color: '#193cb8',
+          fontSize: '18px',
+          fontFamily: 'monospace',
+        },
+      })
     }
   }
 
@@ -120,7 +154,7 @@ export default function SearchBar({
               onChange={(e) => handleSearchbar(e.target.value)}
               type="text"
               className="w-full border-2 border-blue-600 outline-none p-4 rounded-md placeholder:text-xl placeholder:text-gray-500 text-2xl"
-              placeholder="Search awesome 8-bit game.."
+              placeholder={searchPlaceholderTexts}
             />
             <button
               type="submit"

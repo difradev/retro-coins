@@ -1,5 +1,6 @@
 'use server'
 
+import { redirect } from 'next/navigation'
 import { ConditionCode, PlatformCode } from '../generated/prisma/client'
 import prisma from '../lib/database/prisma'
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
@@ -75,8 +76,5 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
     }
   }
 
-  return {
-    success: true,
-    gameId: game.id,
-  }
+  return redirect(`game/${game.id}`)
 }
