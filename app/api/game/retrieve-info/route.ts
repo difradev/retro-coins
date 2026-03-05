@@ -260,6 +260,7 @@ async function getGameInfoAndPrice(
           gameVariantId: gameVariant.id,
           source: 'ebay',
           price: price.value.median,
+          lastUpdate: new Date(),
         },
       })
     }
@@ -298,7 +299,9 @@ async function getGamePrice(
     `${normalizedTitle.replaceAll('-', ' ')} ${platform}`.trim()
   const encodedQuery = encodeURIComponent(searchQuery)
 
-  console.log(`[getGamePrice] Search: "${searchQuery}" on ${marketplace} for ${conditionCode}`)
+  console.log(
+    `[getGamePrice] Search: "${searchQuery}" on ${marketplace} for ${conditionCode}`,
+  )
 
   const marketplaceEndpoint = 'buy/browse/v1/item_summary/search'
   // categoryIds=139973 is "Video Games & Consoles > Video Games"
@@ -315,7 +318,11 @@ async function getGamePrice(
       },
     )
     const items = await marketplaceResponse.json()
-    const gamePrice = manageGamePrice(items.itemSummaries, normalizedTitle, conditionCode)
+    const gamePrice = manageGamePrice(
+      items.itemSummaries,
+      normalizedTitle,
+      conditionCode,
+    )
     return gamePrice
   } catch (error) {
     console.error('Error fetching price from eBay!', error)

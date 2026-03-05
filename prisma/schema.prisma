@@ -56,7 +56,7 @@ model Region {
 model SearchDemand {
   id        Int      @id @default(autoincrement())
   rawQuery  String
-  searchKey String
+  searchKey String   @unique
   createdAt DateTime @default(now())
   processed Boolean  @default(false)
   count7d   Int

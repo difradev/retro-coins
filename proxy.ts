@@ -1,8 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 
 const API_SECRET = process.env.API_SECRET
+const PUBLIC_ROUTES = ['/api/game/suggestion', '/api/game/check-price']
 
 export function proxy(req: NextRequest) {
+  if (PUBLIC_ROUTES.some((route) => req.nextUrl.pathname.startsWith(route))) {
+    return NextResponse.next()
+  }
+
   const authentication = req.headers.get('Authorization')
 
   if (!API_SECRET || !authentication) {
