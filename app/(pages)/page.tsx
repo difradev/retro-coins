@@ -1,9 +1,10 @@
 /**
  * TODO
- * 
+ *
  * - Inserire più ricercati;
  */
 
+import { Metadata } from 'next'
 import Hero from '../_components/hero'
 import SearchBar from '../_components/searchbar'
 import {
@@ -11,6 +12,11 @@ import {
   getAllConditions,
   getAllRegions,
 } from '../lib/repository/game-repository'
+
+export const metadata: Metadata = {
+  title: 'RetroCoins!',
+  description: 'Find the right price for your retro games!',
+}
 
 export default async function Home() {
   const platforms = await getAllPlatforms()

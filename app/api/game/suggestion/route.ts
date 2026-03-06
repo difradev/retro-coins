@@ -20,7 +20,9 @@ export async function GET(
     }
 
     const suggestions = await prisma.gameSuggestion.findMany({
-      where: { title: { contains: query, mode: 'insensitive' } },
+      where: {
+        code: { contains: query.split(' ').join('-'), mode: 'insensitive' },
+      },
     })
 
     return NextResponse.json(
