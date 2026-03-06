@@ -19,7 +19,7 @@ import {
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
 import Chip from './chip'
 
-type SearchbarPros = {
+type SearchbarProps = {
   platforms: Platform[]
   conditions: Condition[]
   regions: Region[]
@@ -34,7 +34,7 @@ export default function SearchBar({
   platforms,
   conditions,
   regions,
-}: SearchbarPros): React.ReactNode {
+}: SearchbarProps): React.ReactNode {
   const searchBarRef = useRef<HTMLInputElement>(null)
   const hiddenSearchBarRef = useRef<HTMLInputElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
@@ -159,7 +159,7 @@ export default function SearchBar({
               ref={searchBarRef}
               onChange={(e) => handleSearchbar(e.target.value)}
               type="text"
-              className="w-full border-2 border-blue-600 outline-none p-4 rounded-md placeholder:text-xl placeholder:text-gray-500 text-2xl"
+              className="w-full border-2 border-blue-600 outline-none p-4 rounded-sm placeholder:text-xl placeholder:text-gray-500 text-2xl"
               placeholder={`Search for ${searchPlaceholderTexts}`}
             />
             <button
@@ -170,13 +170,13 @@ export default function SearchBar({
                 !selectedPlatform ||
                 !selectedRegion
               }
-              className="py-2 px-4 text-xl bg-red-600 text-neutral-100 rounded-md uppercase font-black cursor-pointer hover:opacity-80 disabled:cursor-not-allowed"
+              className="py-2 px-4 text-xl bg-red-600 text-neutral-100 rounded-sm uppercase font-black cursor-pointer hover:opacity-80 disabled:cursor-not-allowed"
             >
               START!
             </button>
           </div>
           {isOpenSuggestions ? (
-            <div className="absolute top-full mt-1 bg-white shadow-lg rounded-md z-10 max-h-44 overflow-auto w-full border border-blue-600">
+            <div className="absolute top-full mt-1 bg-white shadow-lg rounded-sm z-10 max-h-44 overflow-auto w-full border border-blue-600">
               <div className="flex flex-col gap-2">
                 {suggestions.length
                   ? suggestions.map((s) => (
@@ -195,7 +195,7 @@ export default function SearchBar({
             ''
           )}
         </div>
-        <div className="flex flex-col gap-2">
+        <div className="flex flex-col gap-2 mt-4">
           {/* Chips for platforms */}
           <p className="text-sm uppercase font-semibold">Platforms</p>
           <div className="flex gap-1 justify-items-start flex-wrap">

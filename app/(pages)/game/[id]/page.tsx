@@ -2,9 +2,10 @@
  * TODO
  * - Aggiungere altre versioni
  * - Aggiungere grafici
- * - Prevedere una pagina intermedia? Si ricerca il gioco e si filtra solo dopo? Pagina dei risultati?
+ * - Inserire developed by
  */
 
+import { Price } from '@/app/_components/price'
 import prisma from '@/app/lib/database/prisma'
 import { Metadata } from 'next'
 import { Young_Serif } from 'next/font/google'
@@ -47,32 +48,51 @@ export default async function Game({
   }
 
   return (
-    <div className="flex gap-8 items-start pt-67.5 w-4xl mx-auto">
+    <div className="flex gap-8 items-start py-67.5 w-4xl mx-auto">
       <img
         src={game?.game.image}
         alt={`${game?.game.title} ${game?.condition.name} price`}
-        className="w-1/2 rounded-md shadow-lg"
+        className="w-1/2 rounded-sm shadow-lg"
       />
-      <div className="flex flex-col gap-8 ">
-        <div className="flex flex-col gap-1">
-          <p className="text-2xl font-semibold">
-            {game?.platform.name} - {game?.region.name} - {game?.condition.name}
-          </p>
+      <div className="flex flex-col gap-6">
+        {/* TITLE AND INFO */}
+        <div className="flex flex-col gap-2">
+          <div className="flex gap-1.5">
+            <p className="text-xl font-bold text-white bg-red-600 p-2 rounded-sm">
+              {game?.platform.name}
+            </p>
+            <p className="text-xl font-bold text-white bg-red-600 p-2 rounded-sm">
+              {game?.region.name}
+            </p>
+            <p className="text-xl font-bold text-white bg-red-600 p-2 rounded-sm">
+              {game?.condition.name}
+            </p>
+          </div>
           <h1
-            className={`font-black text-6xl text-blue-800 ${youngSerif.className}`}
+            className={`font-black text-6xl text-[#2247b5] ${youngSerif.className}`}
           >
             {game?.game.title}
           </h1>
-          <p className="text-xl text-red-600 font-medium p-2 border-2 border-red-600 rounded-md">
-            Published in {game?.game.year} - Ratings: {game?.game.rate}
-          </p>
-          <p className="text-xl mt-4">{game?.game.description}</p>
+          <div className="flex gap-1 items-center">
+            <p>Published in {game?.game.year}</p>
+            {/* <p>-</p>
+            <p>Developed by SEGA</p> */}
+          </div>
         </div>
-        <p
-          className={`text-9xl font-black text-blue-800 ${youngSerif.className}`}
-        >
-          {game?.priceSnapshots[0].price} €
-        </p>
+        {/* PRICE */}
+        <Price priceSnapshot={game?.priceSnapshots[0]!} />
+        <hr className="w-full border border-blue-950" />
+        <p className="text-xl mt-4">{game?.game.description}</p>
+        <hr className="w-full border border-blue-950" />
+        {/* Prices by condition */}
+        <div>
+          <p>Other conditions</p>
+        </div>
+        {/* <hr className="w-full border border-blue-950" /> */}
+        {/* Grafici */}
+        {/* <div>
+          <p>GRAFICI</p>
+        </div> */}
       </div>
     </div>
   )

@@ -14,7 +14,7 @@ model Game {
   year         Int
   image        String
   description  String
-  rate         Int
+  developedBy  String
   gameVariants GameVariant[]
 }
 
@@ -69,6 +69,7 @@ model PriceSnapshot {
   price       Int
   source      String
   currency    CurrencyCode
+  itemsCount  Int
   lastUpdate  DateTime     @default(now())
   gameVariant GameVariant  @relation(fields: [gameVariantId], references: [id])
 }

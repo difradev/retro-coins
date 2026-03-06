@@ -14,7 +14,7 @@ export default function Chip({
   return (
     <div
       onClick={onClick}
-      className={`p-2 border w-auto font-bold rounded-md hover:cursor-pointer transition-all ${
+      className={`p-2 border w-auto rounded-sm hover:cursor-pointer transition-all ${
         selected
           ? 'border-blue-600 bg-blue-600 text-white'
           : 'border-gray-400 bg-white text-gray-800 hover:opacity-70'

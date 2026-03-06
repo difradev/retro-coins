@@ -12,7 +12,7 @@ export default function Hero(): React.ReactNode {
     <div className="w-full pt-67.5 flex flex-col">
       <p className="text-2xl">For all retro gamers!</p>
       <h1
-        className={`font-black text-9xl text-blue-800 ${youngSerif.className}`}
+        className={`font-black text-9xl text-[#2247b5] ${youngSerif.className}`}
       >
         RetroCoins!
       </h1>

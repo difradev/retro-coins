@@ -183,7 +183,7 @@ async function getGameInfoAndPrice(
     `[getGameInfoAndPrice] Parsed - normalized: ${normalizedTitle}, platform: ${platformCode}, condition: ${conditionCode}, region: ${regionCode}`,
   )
 
-  const request = ` fields name,rating,cover,first_release_date,summary;
+  const request = ` fields name,rating,cover,first_release_date,summary,involved_companies;
                     where slug = "${normalizedTitle}";
                     limit 1;
                   `
@@ -230,7 +230,7 @@ async function getGameInfoAndPrice(
             cover.status === 'fulfilled'
               ? `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${cover.value[0].image_id}.jpg`
               : '',
-          rate: gameData[0].rating,
+          developedBy: '',
           description: gameData[0].summary,
         },
       })
@@ -262,7 +262,8 @@ async function getGameInfoAndPrice(
             gameVariantId: gameVariant.id,
             source: 'ebay',
             price: price.value.median,
-            // currency: regionCode === 'PAL' ? 'EUR' : 'USD'
+            itemsCount: price.value.count,
+            currency: regionCode === 'PAL' ? 'EUR' : 'USD',
             lastUpdate: new Date(),
           },
         })
