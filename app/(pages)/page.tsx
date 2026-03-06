@@ -25,6 +25,7 @@ export default async function Home() {
         conditions={conditions!}
         regions={regions!}
       />
+      {/* More visited! */}
     </div>
   )
 }

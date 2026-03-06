@@ -3,6 +3,7 @@
  *
  * - Implementare ruota di caricamento quando si inizia a scrivere
  * - Implementare tooltip sulle piattaforme
+ * - animazione sul hover del pulsante? alto-basso
  */
 
 'use client'
@@ -195,54 +196,65 @@ export default function SearchBar({
             ''
           )}
         </div>
-        <div className="flex flex-col gap-2 mt-4">
+        <div className="h-2 bg-blue-950 my-2"></div>
+        <div className="flex flex-col gap-4">
           {/* Chips for platforms */}
-          <p className="text-sm uppercase font-semibold">Platforms</p>
-          <div className="flex gap-1 justify-items-start flex-wrap">
-            {platforms?.map((p) => (
-              <div key={p.id}>
-                <Chip
-                  label={p.code}
-                  selected={selectedPlatform === p.code}
-                  onClick={() => togglePlatform(p.code)}
-                />
-              </div>
-            ))}
-            {selectedPlatform && (
-              <input type="hidden" name="platform" value={selectedPlatform} />
-            )}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm uppercase font-semibold">Platforms</p>
+            <div className="flex gap-2 justify-items-start flex-wrap">
+              {platforms?.map((p) => (
+                <div key={p.id}>
+                  <Chip
+                    label={p.name}
+                    selected={selectedPlatform === p.code}
+                    onClick={() => togglePlatform(p.code)}
+                  />
+                </div>
+              ))}
+              {selectedPlatform && (
+                <input type="hidden" name="platform" value={selectedPlatform} />
+              )}
+            </div>
           </div>
           {/* Chips for conditions */}
-          <p className="text-sm uppercase font-semibold">Conditions</p>
-          <div className="flex gap-1 justify-items-start flex-wrap">
-            {conditions?.map((c) => (
-              <div key={c.id}>
-                <Chip
-                  label={c.code}
-                  selected={selectedCondition === c.code}
-                  onClick={() => toggleCondition(c.code)}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm uppercase font-semibold">Conditions</p>
+            <div className="flex gap-2 justify-items-start flex-wrap">
+              {conditions?.map((c) => (
+                <div key={c.id}>
+                  <Chip
+                    label={c.name}
+                    selected={selectedCondition === c.code}
+                    onClick={() => toggleCondition(c.code)}
+                  />
+                </div>
+              ))}
+              {selectedCondition && (
+                <input
+                  type="hidden"
+                  name="condition"
+                  value={selectedCondition}
                 />
-              </div>
-            ))}
-            {selectedCondition && (
-              <input type="hidden" name="condition" value={selectedCondition} />
-            )}
+              )}
+            </div>
           </div>
           {/* Chips for regions */}
-          <p className="text-sm uppercase font-semibold">Regions</p>
-          <div className="flex gap-1 justify-items-start flex-wrap">
-            {regions?.map((r) => (
-              <div key={r.id}>
-                <Chip
-                  label={r.code}
-                  selected={selectedRegion === r.code}
-                  onClick={() => toggleRegion(r.code)}
-                />
-              </div>
-            ))}
-            {selectedRegion && (
-              <input type="hidden" name="region" value={selectedRegion} />
-            )}
+          <div className="flex flex-col gap-1">
+            <p className="text-sm uppercase font-semibold">Regions</p>
+            <div className="flex gap-2 justify-items-start flex-wrap">
+              {regions?.map((r) => (
+                <div key={r.id}>
+                  <Chip
+                    label={r.name}
+                    selected={selectedRegion === r.code}
+                    onClick={() => toggleRegion(r.code)}
+                  />
+                </div>
+              ))}
+              {selectedRegion && (
+                <input type="hidden" name="region" value={selectedRegion} />
+              )}
+            </div>
           </div>
         </div>
       </div>

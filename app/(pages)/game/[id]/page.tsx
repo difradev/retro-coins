@@ -57,7 +57,7 @@ export default async function Game({
       <div className="flex flex-col gap-6">
         {/* TITLE AND INFO */}
         <div className="flex flex-col gap-2">
-          <div className="flex gap-1.5">
+          <div className="flex gap-1.5 items-start">
             <p className="text-xl font-bold text-white bg-red-600 p-2 rounded-sm">
               {game?.platform.name}
             </p>
@@ -65,7 +65,7 @@ export default async function Game({
               {game?.region.name}
             </p>
             <p className="text-xl font-bold text-white bg-red-600 p-2 rounded-sm">
-              {game?.condition.name}
+              {game?.condition.code}
             </p>
           </div>
           <h1
