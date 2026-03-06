@@ -28,7 +28,7 @@ export function Price(props: PriceProps) {
     >
       <div className="absolute inset-1 border border-blue-300 pointer-events-none"></div>
       <div className="h-2 bg-blue-950 mb-4"></div>
-      <p className="text-xs tracking-widest uppercase opacity-80">
+      <p className="text-xs tracking-widest uppercase text-blue-300">
         Average Price
       </p>
       <p className={`text-8xl font-bold mt-2 ${youngSerif.className}`}>
@@ -37,6 +37,7 @@ export function Price(props: PriceProps) {
       </p>
       <div className="mt-4 text-sm opacity-90">
         <p>Based on {props.priceSnapshot.itemsCount} sales</p>
+        <hr className='my-1 border border-blue-300' />
         <p>Last update {props.priceSnapshot.lastUpdate.toDateString()}</p>
       </div>
     </div>

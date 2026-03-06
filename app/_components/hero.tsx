@@ -10,7 +10,7 @@ const youngSerif = Young_Serif({
 export default function Hero(): React.ReactNode {
   return (
     <div className="w-full pt-67.5 flex flex-col">
-      <p className="text-2xl">For all retro gamers!</p>
+      <p className="text-2xl">For all retro-players!</p>
       <h1
         className={`font-black text-9xl text-[#2247b5] ${youngSerif.className}`}
       >

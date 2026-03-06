@@ -1,5 +1,6 @@
 import { Libre_Caslon_Text } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
+import { CornerLabel } from '../_components/corner-label'
 import './globals.css'
 
 const libreCaslonText = Libre_Caslon_Text({
@@ -15,10 +16,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${libreCaslonText.className} antialiased text-blue-950 transition-all`}
+        className={`${libreCaslonText.className} antialiased text-blue-950 transition-all relative`}
       >
         <Toaster position="bottom-center" />
         <div className="flex w-4xl mx-auto">{children}</div>
+        <CornerLabel />
       </body>
     </html>
   )

@@ -171,7 +171,7 @@ export default function SearchBar({
                 !selectedPlatform ||
                 !selectedRegion
               }
-              className="py-2 px-4 text-xl bg-red-600 text-neutral-100 rounded-sm uppercase font-black cursor-pointer hover:opacity-80 disabled:cursor-not-allowed"
+              className="py-2 px-4 text-xl bg-linear-to-r from-red-500 to-red-600 text-neutral-100 rounded-sm uppercase font-black cursor-pointer disabled:cursor-not-allowed border-l-8 border-[#2247b5] hover:border-yellow-400 hover:-translate-y-1 duration-200 active:translate-0 transition-all"
             >
               START!
             </button>
