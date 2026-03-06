@@ -16,8 +16,8 @@ export default function Chip({
       onClick={onClick}
       className={`p-2 border w-auto rounded-sm hover:cursor-pointer transition-all ${
         selected
-          ? 'border-blue-600 bg-blue-600 text-white'
-          : 'border-gray-400 bg-white text-gray-800 hover:opacity-70'
+          ? 'border-[#2247b5] bg-[#2247b5] text-white'
+          : 'border-[#2247b5] bg-white text-[#2247b5]'
       }`}
     >
       <p>{label}</p>

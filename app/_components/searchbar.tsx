@@ -160,7 +160,7 @@ export default function SearchBar({
               ref={searchBarRef}
               onChange={(e) => handleSearchbar(e.target.value)}
               type="text"
-              className="w-full border-2 border-blue-600 outline-none p-4 rounded-sm placeholder:text-xl placeholder:text-gray-500 text-2xl"
+              className="w-full border-2 border-blue-950 outline-none p-4 rounded-sm placeholder:text-xl placeholder:text-gray-500 text-2xl"
               placeholder={`Search for ${searchPlaceholderTexts}`}
             />
             <button

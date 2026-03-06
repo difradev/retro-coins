@@ -21,7 +21,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${libreCaslonText.className} antialiased text-gray-900 transition-all`}
+        className={`${libreCaslonText.className} antialiased text-blue-950 transition-all`}
       >
         <Toaster position="bottom-center" />
         <div className="flex w-4xl mx-auto">{children}</div>
