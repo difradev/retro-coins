@@ -49,7 +49,7 @@ export function Price(props: PriceProps) {
         </div>
         <div className="mt-4 opacity-90">
           <p>Based on {props.priceSnapshot.itemsCount} tracked sales</p>
-          <p className="text-xs">(Extreme values removed)</p>
+          {/* <p className="text-xs">(Extreme values removed)</p> */}
           <hr className="my-1 border border-blue-300" />
           <p className="text-sm">Last update {lastUpdate}</p>
         </div>

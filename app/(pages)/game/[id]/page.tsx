@@ -80,15 +80,15 @@ export default async function Game({
 
   return (
     <div className="py-67.5 w-4xl mx-auto">
-      <div className="rounded-sm relative bg-linear-to-r from-red-500 to-red-600 border-l-8 border-[#2247b5] p-4 mb-6 hover:border-yellow-400 hover:-translate-y-1 transition-all duration-200 cursor-pointer active:translate-0">
-        <Link
-          href="/"
-          className="text-white font-black text-xl tracking-wider w-full h-full uppercase"
-        >
+      <Link
+        href="/"
+        className="text-white font-black text-xl tracking-wider w-full h-full uppercase"
+      >
+        <div className="rounded-sm relative bg-linear-to-r from-red-500 to-red-600 border-l-8 border-[#2247b5] p-4 mb-6 hover:border-yellow-400 hover:-translate-y-1 transition-all duration-200 cursor-pointer active:translate-0">
           Press <span className="p-2 bg-[#2247b5] rounded-sm">start ►</span> to
           find another retro-game!
-        </Link>
-      </div>
+        </div>
+      </Link>
       <div className="flex gap-8 items-start">
         <img
           src={searchedGame?.game.image}
