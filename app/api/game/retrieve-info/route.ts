@@ -13,7 +13,6 @@
  * - migliorare tipizzazione;
  * - migliorare gestione degli errori (errori più parlanti);
  * - impostare un logger;
- * - implementare getPrice;
  */
 
 import {
