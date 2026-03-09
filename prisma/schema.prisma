@@ -67,6 +67,8 @@ model PriceSnapshot {
   gameVariantId Int
 
   price       Int
+  minPrice    Int
+  maxPrice    Int
   source      String
   currency    CurrencyCode
   itemsCount  Int

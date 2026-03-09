@@ -17,6 +17,8 @@ export function manageGamePrice(
   median: number
   count: number
   outliers: number
+  minPrice: number
+  maxPrice: number
 } {
   if (!items) throw Error()
 
@@ -47,7 +49,7 @@ export function manageGamePrice(
       .sort((a, b) => a - b)
 
     if (prices.length === 0) {
-      return { median: 0, count: 0, outliers: 0 }
+      return { median: 0, count: 0, outliers: 0, maxPrice: 0, minPrice: 0 }
     }
 
     const q1Index = Math.floor(prices.length * 0.25)
@@ -75,6 +77,8 @@ export function manageGamePrice(
       median,
       count: pricesWithoutOutliers.length,
       outliers: prices.length - pricesWithoutOutliers.length,
+      minPrice: pricesWithoutOutliers[0],
+      maxPrice: pricesWithoutOutliers[pricesWithoutOutliers.length - 1],
     }
   } catch (error) {
     throw new Error('Problem with manage game prices')

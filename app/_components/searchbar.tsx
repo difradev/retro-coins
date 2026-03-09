@@ -1,11 +1,3 @@
-/**
- * TODO
- *
- * - Implementare ruota di caricamento quando si inizia a scrivere
- * - Implementare tooltip sulle piattaforme
- * - animazione sul hover del pulsante? alto-basso
- */
-
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
@@ -19,6 +11,7 @@ import {
 } from '../generated/prisma/client'
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
 import Chip from './chip'
+import { SearchbarSpinner } from './searchbar-spinner'
 
 type SearchbarProps = {
   platforms: Platform[]
@@ -31,7 +24,7 @@ const placeholderTextsMap = new Map<number, string>()
   .set(1, 'Pokémon Blue')
   .set(2, 'Chrono Trigger')
 
-export default function SearchBar({
+export default function Searchbar({
   platforms,
   conditions,
   regions,
@@ -46,6 +39,7 @@ export default function SearchBar({
   const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [gameSelected, setGameSelected] = useState<boolean>(false)
   const [isOpenSuggestions, setIsOpenSuggestions] = useState<boolean>(false)
+  const [isSearching, setIsSearching] = useState<boolean>(false)
   const [suggestions, setSuggestions] = useState<GameSuggestion[]>([])
   const [searchPlaceholderTexts, setSearchPlaceholderTexts] =
     useState<string>('Pokémon Blue')
@@ -87,6 +81,7 @@ export default function SearchBar({
     }
 
     if (value.length >= 3) {
+      setIsSearching(true)
       timeoutRef.current = setTimeout(async () => {
         const suggestionsResponse = await fetch(
           `/api/game/suggestion?q=${value}`,
@@ -94,12 +89,14 @@ export default function SearchBar({
         const suggestions = await suggestionsResponse.json()
         setIsOpenSuggestions(!!suggestions.data)
         setSuggestions(suggestions.data)
+        setIsSearching(false)
       }, 800)
     }
 
     if (!value.length) {
       setSuggestions([])
       setIsOpenSuggestions(false)
+      setIsSearching(false)
     }
   }
 
@@ -155,14 +152,17 @@ export default function SearchBar({
         <div className="relative">
           <div className="w-full flex gap-2">
             <input type="hidden" name="search-input" ref={hiddenSearchBarRef} />
-            <input
-              autoComplete="off"
-              ref={searchBarRef}
-              onChange={(e) => handleSearchbar(e.target.value)}
-              type="text"
-              className="w-full border-2 border-blue-950 outline-none p-4 rounded-sm placeholder:text-xl placeholder:text-gray-500 text-2xl"
-              placeholder={`Search for ${searchPlaceholderTexts}`}
-            />
+            <label className="relative w-full">
+              <input
+                autoComplete="off"
+                ref={searchBarRef}
+                onChange={(e) => handleSearchbar(e.target.value)}
+                type="text"
+                className="w-full border-2 border-blue-950 outline-none p-4 rounded-sm placeholder:text-xl placeholder:text-gray-500 text-2xl"
+                placeholder={`Search for ${searchPlaceholderTexts}`}
+              />
+              {isSearching && <SearchbarSpinner />}
+            </label>
             <button
               type="submit"
               disabled={
@@ -171,31 +171,34 @@ export default function SearchBar({
                 !selectedPlatform ||
                 !selectedRegion
               }
-              className="py-2 px-4 text-xl bg-linear-to-r from-red-500 to-red-600 text-neutral-100 rounded-sm uppercase font-black cursor-pointer disabled:cursor-not-allowed border-l-8 border-[#2247b5] hover:border-yellow-400 hover:-translate-y-1 duration-200 active:translate-0 transition-all"
+              className="py-2 px-4 flex items-center gap-2 bg-linear-to-r from-red-500 to-red-600 text-neutral-100 rounded-sm uppercase font-black cursor-pointer disabled:cursor-not-allowed border-l-8 border-[#2247b5] hover:border-yellow-400 hover:-translate-y-1 duration-200 active:translate-0 transition-all"
             >
-              START!
+              Start <span>►</span>
             </button>
           </div>
           {isOpenSuggestions ? (
             <div className="absolute top-full mt-1 bg-white shadow-lg rounded-sm z-10 max-h-44 overflow-auto w-full border border-blue-600">
               <div className="flex flex-col gap-2">
-                {suggestions.length
-                  ? suggestions.map((s) => (
-                      <p
-                        className="cursor-pointer hover:bg-neutral-100 p-4 text-xl"
-                        onClick={() => handleSelectGame(s.code, s.title)}
-                        key={s.id}
-                      >
-                        {s.title}
-                      </p>
-                    ))
-                  : ''}
+                {suggestions.length ? (
+                  suggestions.map((s) => (
+                    <p
+                      className="cursor-pointer hover:bg-neutral-100 p-4 text-xl"
+                      onClick={() => handleSelectGame(s.code, s.title)}
+                      key={s.id}
+                    >
+                      {s.title}
+                    </p>
+                  ))
+                ) : (
+                  <p className="p-4 text-xl">No games found!</p>
+                )}
               </div>
             </div>
           ) : (
             ''
           )}
         </div>
+        <p>Based on real sales • Median price • Outliers removed</p>
         <div className="h-2 bg-blue-950 my-2"></div>
         <div className="flex flex-col gap-4">
           {/* Chips for platforms */}
@@ -223,7 +226,7 @@ export default function SearchBar({
               {conditions?.map((c) => (
                 <div key={c.id}>
                   <Chip
-                    label={c.name}
+                    label={c.code}
                     selected={selectedCondition === c.code}
                     onClick={() => toggleCondition(c.code)}
                   />
@@ -245,7 +248,7 @@ export default function SearchBar({
               {regions?.map((r) => (
                 <div key={r.id}>
                   <Chip
-                    label={r.name}
+                    label={r.code}
                     selected={selectedRegion === r.code}
                     onClick={() => toggleRegion(r.code)}
                   />

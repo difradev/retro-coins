@@ -21,6 +21,8 @@ type PriceProps = {
 }
 
 export function Price(props: PriceProps) {
+  const currency = props.priceSnapshot.currency === 'EUR' ? '€' : '$'
+
   return (
     <div className="flex flex-col gap-1">
       <div
@@ -32,21 +34,31 @@ export function Price(props: PriceProps) {
         <div className="absolute inset-1 border border-blue-300 pointer-events-none"></div>
         <div className="h-2 bg-blue-950 mb-4"></div>
         <p className="text-xs tracking-widest uppercase text-blue-300">
-          Typical market price - {props.info.condition} ({props.info.region})
+          Market price - {props.info.condition} ({props.info.region})
         </p>
-        <p className={`text-8xl font-bold mt-2 ${youngSerif.className} price`}>
-          {props.priceSnapshot.price}{' '}
-          {props.priceSnapshot.currency === 'EUR' ? '€' : '$'}
-        </p>
-        <div className="mt-4 text-sm opacity-90">
+        <div className="flex flex-col gap-4">
+          <p
+            className={`text-8xl font-bold mt-2 ${youngSerif.className} price`}
+          >
+            {props.priceSnapshot.price} {currency}
+          </p>
+          <p>
+            Most sales: {props.priceSnapshot.minPrice} {currency} -{' '}
+            {props.priceSnapshot.maxPrice} {currency}
+          </p>
+        </div>
+        <div className="mt-4 opacity-90">
           <p>Based on {props.priceSnapshot.itemsCount} tracked sales</p>
-          <p>(Outliers removed)</p>
+          <p className="text-xs">(Extreme values removed)</p>
           <hr className="my-1 border border-blue-300" />
-          <p>Last update {props.priceSnapshot.lastUpdate.toDateString()}</p>
+          <p className="text-sm">
+            Last update {props.priceSnapshot.lastUpdate.toDateString()}
+          </p>
         </div>
       </div>
       <Tooltip anchorSelect=".price" place="top">
-        Price based on recent sales with extreme values removed
+        Prices are calculated using the median of recent sales. <br /> Extreme
+        low and high values are removed to avoid distortions.
       </Tooltip>
     </div>
   )

@@ -1,21 +1,16 @@
-/**
- * TODO
- *
- * - Inserire più ricercati;
- */
-
 import { Metadata } from 'next'
 import Hero from '../_components/hero'
-import SearchBar from '../_components/searchbar'
+import Searchbar from '../_components/searchbar'
 import {
-  getAllPlatforms,
   getAllConditions,
+  getAllPlatforms,
   getAllRegions,
 } from '../lib/repository/game-repository'
 
 export const metadata: Metadata = {
-  title: 'RetroCoins!',
-  description: 'Find the right price for your retro games!',
+  title: 'RetroCoins! | Real market prices for retro games',
+  description:
+    'Accurate retro game prices based on real market sales! Prices calculated from real sales using median values. Extreme prices are removed for accuracy.',
 }
 
 export default async function Home() {
@@ -26,7 +21,7 @@ export default async function Home() {
   return (
     <div className="h-full flex flex-col items-center gap-6 w-4xl mx-auto">
       <Hero />
-      <SearchBar
+      <Searchbar
         platforms={platforms!}
         conditions={conditions!}
         regions={regions!}

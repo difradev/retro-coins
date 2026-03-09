@@ -9,15 +9,15 @@ const youngSerif = Young_Serif({
 
 export default function Hero(): React.ReactNode {
   return (
-    <div className="w-full pt-67.5 flex flex-col">
-      <p className="text-2xl">For all retro-players!</p>
+    <div className="w-full pt-58 flex flex-col">
+      <p className="text-2xl">For all retro-gamers!</p>
       <h1
         className={`font-black text-9xl text-[#2247b5] ${youngSerif.className}`}
       >
         RetroCoins!
       </h1>
       <p className="text-4xl font-semibold">
-        Find the right price for your retro games!
+        Accurate retro game prices based on real market sales
       </p>
     </div>
   )

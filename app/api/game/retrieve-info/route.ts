@@ -284,6 +284,8 @@ async function getGameInfoAndPrice(
           gameVariantId: gameVariant.id,
           source: 'ebay',
           price: price.value.median,
+          maxPrice: price.value.maxPrice,
+          minPrice: price.value.minPrice,
           itemsCount: price.value.count,
           currency: regionCode === 'PAL' ? 'EUR' : 'USD',
           lastUpdate: new Date(),
@@ -308,6 +310,8 @@ async function getGameInfoAndPrice(
                 source: 'ebay',
                 price: o.value.price.median,
                 itemsCount: o.value.price.count,
+                maxPrice: o.value.price.maxPrice,
+                minPrice: o.value.price.minPrice,
                 currency: regionCode === 'PAL' ? 'EUR' : 'USD',
                 lastUpdate: new Date(),
               },
@@ -342,7 +346,13 @@ async function getGamePrice(
   platformCode: PlatformCode,
   regionCode: RegionCode,
   conditionCode: ConditionCode,
-): Promise<{ median: number; count: number; outliers: number }> {
+): Promise<{
+  median: number
+  count: number
+  outliers: number
+  maxPrice: number
+  minPrice: number
+}> {
   const marketplace = getMarketplaceByRegion(regionCode)
   const platform = platformMap.get(platformCode.toLowerCase()) || ''
 
