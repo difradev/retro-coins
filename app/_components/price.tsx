@@ -1,14 +1,9 @@
-/**
- * TODO
- *
- * - rivedere campo last update
- */
-
 'use client'
 
+import { formatDistance } from 'date-fns'
 import { Young_Serif } from 'next/font/google'
-import { PriceSnapshot } from '../generated/prisma/client'
 import { Tooltip } from 'react-tooltip'
+import { PriceSnapshot } from '../generated/prisma/client'
 
 const youngSerif = Young_Serif({
   variable: '--font-young-serif',
@@ -22,6 +17,11 @@ type PriceProps = {
 
 export function Price(props: PriceProps) {
   const currency = props.priceSnapshot.currency === 'EUR' ? '€' : '$'
+  const lastUpdate = formatDistance(
+    new Date(props.priceSnapshot.lastUpdate),
+    new Date(),
+    { addSuffix: true },
+  )
 
   return (
     <div className="flex flex-col gap-1">
@@ -51,9 +51,7 @@ export function Price(props: PriceProps) {
           <p>Based on {props.priceSnapshot.itemsCount} tracked sales</p>
           <p className="text-xs">(Extreme values removed)</p>
           <hr className="my-1 border border-blue-300" />
-          <p className="text-sm">
-            Last update {props.priceSnapshot.lastUpdate.toDateString()}
-          </p>
+          <p className="text-sm">Last update {lastUpdate}</p>
         </div>
       </div>
       <Tooltip anchorSelect=".price" place="top">

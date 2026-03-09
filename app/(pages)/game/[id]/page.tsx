@@ -2,9 +2,11 @@ import { GameInfo } from '@/app/_components/game-info'
 import { Price } from '@/app/_components/price'
 import prisma from '@/app/lib/database/prisma'
 import { Metadata } from 'next'
+import { unstable_cache } from 'next/cache'
 import { Young_Serif } from 'next/font/google'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
+import { cache } from 'react'
 
 export const metadata: Metadata = {}
 
@@ -17,48 +19,64 @@ const youngSerif = Young_Serif({
   weight: '400',
 })
 
+const getGameVariant = cache((id: string) => {
+  return unstable_cache(
+    () => {
+      return prisma.gameVariant.findFirst({
+        where: { id: +id },
+        select: {
+          id: true,
+          game: true,
+          condition: true,
+          platform: true,
+          region: true,
+          priceSnapshots: true,
+        },
+      })
+    },
+    ['gameVariant', id],
+    { revalidate: 86400, tags: ['gameVariant', id] },
+  )()
+})
+
+const getOtherGamesVariant = cache((gameId: number, conditionId: number) => {
+  return unstable_cache(
+    () => {
+      return prisma.gameVariant.findMany({
+        where: {
+          gameId: gameId,
+          AND: [{ conditionId: { not: conditionId } }],
+        },
+        select: {
+          condition: true,
+          priceSnapshots: true,
+        },
+      })
+    },
+    ['otherGamesVariant', gameId.toLocaleString()],
+    { revalidate: 86400, tags: ['otherGamesVariant', gameId.toLocaleString()] },
+  )()
+})
+
 export default async function Game({
   params,
 }: {
   params: Promise<GamePageParams>
 }) {
   const { id } = await params
-  let searchedGame = null
-  let otherGameConditions = null
 
-  try {
-    searchedGame = await prisma.gameVariant.findFirst({
-      where: { id: +id },
-      select: {
-        id: true,
-        game: true,
-        condition: true,
-        platform: true,
-        region: true,
-        priceSnapshots: true,
-      },
-    })
-
-    if (!searchedGame) {
-      redirect('/')
-    }
-
-    otherGameConditions = await prisma.gameVariant.findMany({
-      where: {
-        gameId: searchedGame.game.id,
-        AND: [{ conditionId: { not: searchedGame.condition.id } }],
-      },
-      select: {
-        condition: true,
-        priceSnapshots: true,
-      },
-    })
-
-    metadata.title = `${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name} price | RetroCoins!`
-    metadata.description = `Find the right price for ${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name}`
-  } catch (error) {
-    console.error('There was a problem', error)
+  const searchedGame = await getGameVariant(id)
+  if (!searchedGame) {
+    redirect('/')
   }
+
+  const otherGameConditions = await getOtherGamesVariant(
+    searchedGame.game.id,
+    searchedGame.condition.id,
+  )
+
+  metadata.title = `${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name} price | RetroCoins!`
+  metadata.description = `Find the right price for ${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name}`
 
   return (
     <div className="py-67.5 w-4xl mx-auto">
@@ -67,8 +85,8 @@ export default async function Game({
           href="/"
           className="text-white font-black text-xl tracking-wider w-full h-full uppercase"
         >
-          Press <span className="p-2 bg-[#2247b5] rounded-sm">start ►</span> to find
-          another retro-game!
+          Press <span className="p-2 bg-[#2247b5] rounded-sm">start ►</span> to
+          find another retro-game!
         </Link>
       </div>
       <div className="flex gap-8 items-start">

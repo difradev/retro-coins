@@ -12,6 +12,7 @@ import {
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
 import Chip from './chip'
 import { SearchbarSpinner } from './searchbar-spinner'
+import { Divider } from './divider'
 
 type SearchbarProps = {
   platforms: Platform[]
@@ -199,7 +200,7 @@ export default function Searchbar({
           )}
         </div>
         <p>Based on real sales • Median price • Outliers removed</p>
-        <div className="h-2 bg-blue-950 my-2"></div>
+        <Divider hight="h-2" />
         <div className="flex flex-col gap-4">
           {/* Chips for platforms */}
           <div className="flex flex-col gap-1">
