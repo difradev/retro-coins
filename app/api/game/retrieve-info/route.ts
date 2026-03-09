@@ -16,12 +16,20 @@
  */
 
 import {
+  Condition,
+  Game,
+  Platform,
+  Prisma,
+  Region,
+} from '@/app/generated/prisma/client'
+import {
   ConditionCode,
   PlatformCode,
   RegionCode,
 } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
 import { manageGamePrice } from '@/app/lib/utils/manage-game-price'
+import { PrismaClient } from '@prisma/client/extension'
 import EbayAuthToken from 'ebay-oauth-nodejs-client'
 import { NextResponse } from 'next/server'
 
@@ -217,6 +225,22 @@ async function getGameInfoAndPrice(
     getGamePrice(normalizedTitle, platformCode, regionCode, conditionCode),
   ])
 
+  const otherConditions = await prisma.condition.findMany({
+    where: { code: { not: conditionCode } },
+  })
+
+  const otherConditionsPrice = await Promise.allSettled(
+    otherConditions.map(async (c) => ({
+      conditionId: c.id,
+      price: await getGamePrice(
+        normalizedTitle,
+        platformCode,
+        regionCode,
+        c.code,
+      ),
+    })),
+  )
+
   if (price.status === 'fulfilled' && price.value.count > 0) {
     // Scrivo sul database solo se ho trovato un prezzo!
     await prisma.$transaction(async (tx) => {
@@ -255,18 +279,42 @@ async function getGameInfoAndPrice(
         },
       })
 
-      if (price.status === 'fulfilled') {
-        await tx.priceSnapshot.create({
-          data: {
-            gameVariantId: gameVariant.id,
-            source: 'ebay',
-            price: price.value.median,
-            itemsCount: price.value.count,
-            currency: regionCode === 'PAL' ? 'EUR' : 'USD',
-            lastUpdate: new Date(),
-          },
-        })
-      }
+      await tx.priceSnapshot.create({
+        data: {
+          gameVariantId: gameVariant.id,
+          source: 'ebay',
+          price: price.value.median,
+          itemsCount: price.value.count,
+          currency: regionCode === 'PAL' ? 'EUR' : 'USD',
+          lastUpdate: new Date(),
+        },
+      })
+
+      await Promise.all(
+        otherConditionsPrice.map(async (o) => {
+          if (o.status === 'fulfilled') {
+            const otherGameVariant = await tx.gameVariant.create({
+              data: {
+                gameId: game.id,
+                platformId: platform.id,
+                conditionId: o.value.conditionId,
+                regionId: region.id,
+              },
+            })
+
+            await tx.priceSnapshot.create({
+              data: {
+                gameVariantId: otherGameVariant.id,
+                source: 'ebay',
+                price: o.value.price.median,
+                itemsCount: o.value.price.count,
+                currency: regionCode === 'PAL' ? 'EUR' : 'USD',
+                lastUpdate: new Date(),
+              },
+            })
+          }
+        }),
+      )
 
       await tx.searchDemand.update({
         where: { id: searchId },
@@ -313,7 +361,7 @@ async function getGamePrice(
 
   try {
     const marketplaceResponse = await fetch(
-      `${EBAY_ENDPOINT}/${marketplaceEndpoint}?q=${encodedQuery}&limit=150&filter=${filters}`,
+      `${EBAY_ENDPOINT}/${marketplaceEndpoint}?q=${encodedQuery}&limit=200&filter=${filters}`,
       {
         headers: {
           Authorization: `Bearer ${cachedEbayToken.access_token}`,

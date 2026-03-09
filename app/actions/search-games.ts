@@ -1,9 +1,3 @@
-/**
- * TODO
- *
- * - Perfezionare la ricera includendo anche piattaforma, condizione e regione
- */
-
 'use server'
 
 import { redirect } from 'next/navigation'
@@ -48,53 +42,38 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
         { platform: { code: platform } },
       ],
     },
-    select: { id: true, priceSnapshots: true },
+    select: { id: true },
   })
 
-  if (!game) {
-    const rawQuery = searchQuery.replaceAll('-', ' ')
-    try {
-      await prisma.searchDemand.upsert({
-        where: {
-          searchKey: `${searchQuery}-${selectedPlatform.toLowerCase()}-${selectedRegion.toLowerCase()}-${selectedCondition.toLowerCase()}`,
-        },
-        update: { count7d: { increment: 1 } },
-        create: {
-          searchKey: `${searchQuery}-${selectedPlatform.toLowerCase()}-${selectedRegion.toLowerCase()}-${selectedCondition.toLowerCase()}`,
-          count7d: 1,
-          rawQuery: `${rawQuery} ${selectedPlatform} ${selectedRegion} ${selectedCondition}`,
-          createdAt: new Date(),
-          processed: false,
-        },
-      })
-    } catch (error) {
-      console.error('Problem while finding game search demand', error)
-      return {
-        success: false,
-        error: 'Search Demand error!',
-        errorCode: ErrorSearchGamesEnum.GeneralError,
-      }
-    }
-    return {
-      success: false,
-      error: 'Game not found!',
-      errorCode: ErrorSearchGamesEnum.GameNotFound,
-    }
-  }
-
   try {
-    await prisma.searchDemand.update({
+    const rawQuery = searchQuery.replaceAll('-', ' ')
+    await prisma.searchDemand.upsert({
       where: {
         searchKey: `${searchQuery}-${selectedPlatform.toLowerCase()}-${selectedRegion.toLowerCase()}-${selectedCondition.toLowerCase()}`,
       },
-      data: { count7d: { increment: 1 } },
+      update: { count7d: { increment: 1 } },
+      create: {
+        searchKey: `${searchQuery}-${selectedPlatform.toLowerCase()}-${selectedRegion.toLowerCase()}-${selectedCondition.toLowerCase()}`,
+        count7d: 1,
+        rawQuery: `${rawQuery} ${selectedPlatform} ${selectedRegion} ${selectedCondition}`,
+        createdAt: new Date(),
+        processed: false,
+      },
     })
   } catch (error) {
-    console.error('Error while increment search demand game!', error)
+    console.error('Problem while finding game search demand', error)
     return {
       success: false,
       error: 'Search Demand error!',
       errorCode: ErrorSearchGamesEnum.GeneralError,
+    }
+  }
+
+  if (!game) {
+    return {
+      success: false,
+      error: 'Game not found!',
+      errorCode: ErrorSearchGamesEnum.GameNotFound,
     }
   }
 

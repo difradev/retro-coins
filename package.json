@@ -20,7 +20,8 @@
     "pg": "^8.18.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "react-hot-toast": "^2.6.0"
+    "react-hot-toast": "^2.6.0",
+    "react-tooltip": "^5.30.0"
   },
   "devDependencies": {
     "@faker-js/faker": "^10.3.0",
