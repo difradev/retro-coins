@@ -113,7 +113,8 @@ const gameData: Prisma.GameCreateInput[] = [
     description: 'This is a dummy text',
     image: '',
     year: 1996,
-    rate: 90,
+    developedBy: '',
+    slug: '',
     gameVariants: {
       create: [
         {
