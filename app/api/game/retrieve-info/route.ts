@@ -16,20 +16,12 @@
  */
 
 import {
-  Condition,
-  Game,
-  Platform,
-  Prisma,
-  Region,
-} from '@/app/generated/prisma/client'
-import {
   ConditionCode,
   PlatformCode,
   RegionCode,
 } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
-import { manageGamePrice } from '@/app/lib/utils/manage-game-price'
-import { PrismaClient } from '@prisma/client/extension'
+import { getGamePrice } from '@/app/lib/utils/get-game-price'
 import EbayAuthToken from 'ebay-oauth-nodejs-client'
 import { NextResponse } from 'next/server'
 
@@ -134,6 +126,7 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
   }
 
   try {
+    // Processo 5 giochi alla volta con 500 ms di ritardo ogni chiamata
     const gamesPerBatch = 5
     const delayMs = 500
 
@@ -146,7 +139,6 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
         batch.map(({ searchKey, id }) => getGameInfoAndPrice(searchKey, id)),
       )
 
-      // Delay tra ogni chiamata
       if (i + gamesPerBatch < searchDemands.length) {
         await new Promise((resolve) => setTimeout(resolve, delayMs))
       }
@@ -165,7 +157,7 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
 
   return NextResponse.json(
     {
-      message: 'OK',
+      message: `There was added new games!`,
     },
     {
       status: 200,
@@ -222,7 +214,12 @@ async function getGameInfoAndPrice(
 
   const [cover, price] = await Promise.allSettled([
     fetchCover(gameData[0]?.cover),
-    getGamePrice(normalizedTitle, platformCode, regionCode, conditionCode),
+    getGamePrice({
+      title: normalizedTitle,
+      platformCode,
+      regionCode,
+      conditionCode,
+    }),
   ])
 
   const otherConditions = await prisma.condition.findMany({
@@ -232,12 +229,12 @@ async function getGameInfoAndPrice(
   const otherConditionsPrice = await Promise.allSettled(
     otherConditions.map(async (c) => ({
       conditionId: c.id,
-      price: await getGamePrice(
-        normalizedTitle,
+      price: await getGamePrice({
+        title: normalizedTitle,
         platformCode,
         regionCode,
-        c.code,
-      ),
+        conditionCode: c.code,
+      }),
     })),
   )
 
@@ -341,57 +338,6 @@ async function fetchCover(cover_id: number) {
   return gameCoverResponse.json()
 }
 
-async function getGamePrice(
-  normalizedTitle: string,
-  platformCode: PlatformCode,
-  regionCode: RegionCode,
-  conditionCode: ConditionCode,
-): Promise<{
-  median: number
-  count: number
-  outliers: number
-  maxPrice: number
-  minPrice: number
-}> {
-  const marketplace = getMarketplaceByRegion(regionCode)
-  const platform = platformMap.get(platformCode.toLowerCase()) || ''
-
-  // Simplified query: only title + platform (no region/condition terms)
-  const searchQuery =
-    `${normalizedTitle.replaceAll('-', ' ')} ${platform}`.trim()
-  const encodedQuery = encodeURIComponent(searchQuery)
-
-  console.log(
-    `[getGamePrice] Search: "${searchQuery}" on ${marketplace} for ${conditionCode}`,
-  )
-
-  const marketplaceEndpoint = 'buy/browse/v1/item_summary/search'
-  // categoryIds=139973 is "Video Games & Consoles > Video Games"
-  const filters = 'buyingOptions:{FIXED_PRICE},categoryIds:{139973}'
-
-  try {
-    const marketplaceResponse = await fetch(
-      `${EBAY_ENDPOINT}/${marketplaceEndpoint}?q=${encodedQuery}&limit=200&filter=${filters}`,
-      {
-        headers: {
-          Authorization: `Bearer ${cachedEbayToken.access_token}`,
-          'X-EBAY-C-MARKETPLACE-ID': marketplace,
-        },
-      },
-    )
-    const items = await marketplaceResponse.json()
-    const gamePrice = manageGamePrice(
-      items.itemSummaries,
-      normalizedTitle,
-      conditionCode,
-    )
-    return gamePrice
-  } catch (error) {
-    console.error('Error fetching price from eBay!', error)
-    throw new Error('There was a problem')
-  }
-}
-
 function normalizeGameTitle(searchKey: string): string {
   return searchKey
     .split('-')
@@ -421,13 +367,4 @@ function getRegionCode(searchKey: string): RegionCode {
     .filter((s) => gameRegionsFromSearchKey.has(s))
     .join('')
     .toUpperCase() as RegionCode
-}
-
-function getMarketplaceByRegion(regionCode: RegionCode): string {
-  const marketplaceMap: Record<RegionCode, string> = {
-    PAL: 'EBAY_GB',
-    NTSC: 'EBAY_US',
-    JAP: 'EBAY_US',
-  }
-  return marketplaceMap[regionCode] || 'EBAY_US'
 }
