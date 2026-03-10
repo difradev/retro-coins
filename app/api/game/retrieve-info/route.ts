@@ -22,7 +22,6 @@ import {
 } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
 import { getGamePrice } from '@/app/lib/utils/get-game-price'
-import EbayAuthToken from 'ebay-oauth-nodejs-client'
 import { NextResponse } from 'next/server'
 
 type TokenResponse = {
@@ -35,9 +34,6 @@ const TWITCH_OAUTH_URL = process.env.TWITCH_OAUTH_URL
 const TWITCH_API_CLIENT_ID = process.env.TWITCH_API_CLIENT_ID
 const TWITCH_API_SECRET = process.env.TWITCH_API_SECRET
 const IGDB_ENDPOINT = process.env.IGDB_ENDPOINT
-const EBAY_CLIENT_ID = process.env.EBAY_CLIENT_ID
-const EBAY_CLIENT_SECRET = process.env.EBAY_CLIENT_SECRET
-const EBAY_ENDPOINT = process.env.EBAY_ENDPOINT
 
 const platformFromSearchKey = new Set([
   'gb',
@@ -47,14 +43,6 @@ const platformFromSearchKey = new Set([
   'sms',
   'smd',
 ])
-
-const platformMap = new Map<string, string>()
-  .set('gb', 'Game Boy')
-  .set('gba', 'Game Boy Advance')
-  .set('nes', 'Nintendo Entertainment System')
-  .set('snes', 'Super Nintendo Entertainment System')
-  .set('sms', 'Sega Master System')
-  .set('smd', 'Sega Mega Drive')
 
 const gameConditionsFromSearchKey = new Set(['loose', 'cib', 'sealed'])
 
@@ -67,9 +55,8 @@ const excludeWordsFromSearchKey = new Set([
 ])
 
 let cachedTwitchToken: TokenResponse
-let cachedEbayToken: TokenResponse
 let expiryTwitchTokenTimestamp: number
-let expiryEbayTokenTimestamp: number
+let gamesAdded = 0
 
 export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
   let searchDemands: { id: number; searchKey: string; count7d: number }[] = []
@@ -101,18 +88,6 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
       cachedTwitchToken = response
       expiryTwitchTokenTimestamp = Date.now() + response.expires_in * 1000
     }
-
-    if (!cachedEbayToken || Date.now() > expiryEbayTokenTimestamp) {
-      const ebayAuthToken = new EbayAuthToken({
-        clientId: EBAY_CLIENT_ID!,
-        clientSecret: EBAY_CLIENT_SECRET!,
-        redirectUri: '/api/game/retrieve-info',
-      })
-
-      const token = await ebayAuthToken.getApplicationToken('PRODUCTION')
-      cachedEbayToken = JSON.parse(token) as TokenResponse
-      expiryEbayTokenTimestamp = Date.now() + cachedEbayToken.expires_in * 1000
-    }
   } catch (error) {
     console.error('Error while trying to login to Twitch!', error)
     return NextResponse.json(
@@ -129,6 +104,8 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
     // Processo 5 giochi alla volta con 500 ms di ritardo ogni chiamata
     const gamesPerBatch = 5
     const delayMs = 500
+
+    gamesAdded = searchDemands.filter((s) => s.count7d >= 10).length
 
     for (let i = 0; i < searchDemands.length; i += gamesPerBatch) {
       const batch = searchDemands
@@ -157,7 +134,7 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
 
   return NextResponse.json(
     {
-      message: `There was added new games!`,
+      message: `Was added ${gamesAdded} new games!`,
     },
     {
       status: 200,

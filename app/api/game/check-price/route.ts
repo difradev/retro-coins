@@ -79,7 +79,7 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
 
     return NextResponse.json(
       {
-        message: `There was updated ${pricesGameToUpdate.length} games`,
+        message: `Was updated ${pricesGameToUpdate.length} games`,
       },
       { status: 200 },
     )
