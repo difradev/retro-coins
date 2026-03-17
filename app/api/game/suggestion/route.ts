@@ -21,7 +21,7 @@ export async function GET(
 
     const suggestions = await prisma.gameSuggestion.findMany({
       where: {
-        code: { contains: query.split(' ').join('-'), mode: 'insensitive' },
+        slug: { contains: query.split(' ').join('-'), mode: 'insensitive' },
       },
     })
 

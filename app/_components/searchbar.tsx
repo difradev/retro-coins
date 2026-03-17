@@ -11,8 +11,8 @@ import {
 } from '../generated/prisma/client'
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
 import Chip from './chip'
-import { SearchbarSpinner } from './searchbar-spinner'
 import { Divider } from './divider'
+import { SearchbarSpinner } from './searchbar-spinner'
 
 type SearchbarProps = {
   platforms: Platform[]
@@ -26,14 +26,12 @@ const placeholderTextsMap = new Map<number, string>()
   .set(2, 'Chrono Trigger')
 
 export default function Searchbar({
-  platforms,
   conditions,
   regions,
 }: SearchbarProps): React.ReactNode {
   const searchBarRef = useRef<HTMLInputElement>(null)
   const hiddenSearchBarRef = useRef<HTMLInputElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const [selectedPlatform, setSelectedPlatform] = useState<string | null>(null)
   const [selectedCondition, setSelectedCondition] = useState<string | null>(
     null,
   )
@@ -61,11 +59,6 @@ export default function Searchbar({
   const ripristineChips = () => {
     setSelectedCondition(null)
     setSelectedRegion(null)
-    setSelectedPlatform(null)
-  }
-
-  const togglePlatform = (code: string) => {
-    setSelectedPlatform((prev) => (prev === code ? null : code))
   }
 
   const toggleCondition = (code: string) => {
@@ -166,12 +159,7 @@ export default function Searchbar({
             </label>
             <button
               type="submit"
-              disabled={
-                !gameSelected ||
-                !selectedCondition ||
-                !selectedPlatform ||
-                !selectedRegion
-              }
+              disabled={!gameSelected || !selectedCondition || !selectedRegion}
               className="py-2 px-4 flex items-center gap-2 bg-linear-to-r from-red-500 to-red-600 text-neutral-100 rounded-sm uppercase font-black cursor-pointer disabled:cursor-not-allowed border-l-8 border-[#2247b5] hover:border-yellow-400 hover:-translate-y-1 duration-200 active:translate-0 transition-all"
             >
               Start <span>►</span>
@@ -184,7 +172,7 @@ export default function Searchbar({
                   suggestions.map((s) => (
                     <p
                       className="cursor-pointer hover:bg-neutral-100 p-4 text-xl"
-                      onClick={() => handleSelectGame(s.code, s.title)}
+                      onClick={() => handleSelectGame(s.slug, s.title)}
                       key={s.id}
                     >
                       {s.title}
@@ -203,7 +191,7 @@ export default function Searchbar({
         <Divider hight="h-2" />
         <div className="flex flex-col gap-4">
           {/* Chips for platforms */}
-          <div className="flex flex-col gap-1">
+          {/* <div className="flex flex-col gap-1">
             <p className="text-sm uppercase font-semibold">Platforms</p>
             <div className="flex gap-2 justify-items-start flex-wrap">
               {platforms?.map((p) => (
@@ -219,7 +207,7 @@ export default function Searchbar({
                 <input type="hidden" name="platform" value={selectedPlatform} />
               )}
             </div>
-          </div>
+          </div> */}
           {/* Chips for conditions */}
           <div className="flex flex-col gap-1">
             <p className="text-sm uppercase font-semibold">Conditions</p>

@@ -22,18 +22,8 @@ import {
 } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
 import { getGamePrice } from '@/app/lib/utils/get-game-price'
+import { getGameInfoFromIGDB } from '@/app/lib/utils/get-game.info'
 import { NextResponse } from 'next/server'
-
-type TokenResponse = {
-  access_token: string
-  expires_in: number
-  token_type: string
-}
-
-const TWITCH_OAUTH_URL = process.env.TWITCH_OAUTH_URL
-const TWITCH_API_CLIENT_ID = process.env.TWITCH_API_CLIENT_ID
-const TWITCH_API_SECRET = process.env.TWITCH_API_SECRET
-const IGDB_ENDPOINT = process.env.IGDB_ENDPOINT
 
 const platformFromSearchKey = new Set([
   'gb',
@@ -54,42 +44,19 @@ const excludeWordsFromSearchKey = new Set([
   ...platformFromSearchKey,
 ])
 
-let cachedTwitchToken: TokenResponse
-let expiryTwitchTokenTimestamp: number
 let gamesAdded = 0
 
 export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
   let searchDemands: { id: number; searchKey: string; count7d: number }[] = []
+
   try {
     searchDemands = await prisma.searchDemand.findMany({
       select: { id: true, searchKey: true, count7d: true },
       where: { processed: false },
-      take: 10,
+      // take: 1,
     })
   } catch (error) {
     console.error('Error while quering database!', error)
-    return NextResponse.json(
-      {
-        message: 'There was a problem!',
-      },
-      {
-        status: 500,
-      },
-    )
-  }
-
-  try {
-    if (!cachedTwitchToken || Date.now() > expiryTwitchTokenTimestamp) {
-      const igdbAuth = await fetch(
-        `${TWITCH_OAUTH_URL}?client_id=${TWITCH_API_CLIENT_ID}&client_secret=${TWITCH_API_SECRET}&grant_type=client_credentials`,
-        { method: 'POST' },
-      )
-      const response = (await igdbAuth.json()) as TokenResponse
-      cachedTwitchToken = response
-      expiryTwitchTokenTimestamp = Date.now() + response.expires_in * 1000
-    }
-  } catch (error) {
-    console.error('Error while trying to login to Twitch!', error)
     return NextResponse.json(
       {
         message: 'There was a problem!',
@@ -121,7 +88,7 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
       }
     }
   } catch (error) {
-    console.error('Error fetching IGDB!', error)
+    console.error('Error getting info from IGDB and game price!', error)
     return NextResponse.json(
       {
         message: 'There was a problem!',
@@ -142,6 +109,15 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
   )
 }
 
+/**
+ * This function will get info and price from external services and save this information into database (will be used only one transaction).
+ * Before that operation some informations will normalize.
+ * The game info and price will be stored only if there is some price. If the game is already present in database, will be skipped!
+ *
+ * @param title game title
+ * @param searchId id of the searchDemands record
+ * @returns
+ */
 async function getGameInfoAndPrice(
   title: string,
   searchId: number,
@@ -159,28 +135,18 @@ async function getGameInfoAndPrice(
     `[getGameInfoAndPrice] Parsed - normalized: ${normalizedTitle}, platform: ${platformCode}, condition: ${conditionCode}, region: ${regionCode}`,
   )
 
-  const request = ` fields name,rating,cover,first_release_date,summary,involved_companies;
-                    where slug = "${normalizedTitle}";
-                    limit 1;
-                  `
-
   const gameAlreadyPresent = await prisma.game.findUnique({
     where: { slug: normalizedTitle },
   })
 
-  if (gameAlreadyPresent) return
+  if (gameAlreadyPresent) {
+    console.log(
+      `[getGameInfoAndPrice] Game already present! Skipped: ${normalizedTitle}`,
+    )
+    return
+  }
 
-  const searchGameResponse = await fetch(`${IGDB_ENDPOINT}/v4/games`, {
-    method: 'POST',
-    body: request,
-    headers: {
-      Accept: 'application/json',
-      'Client-ID': TWITCH_API_CLIENT_ID!,
-      Authorization: `Bearer ${cachedTwitchToken.access_token}`,
-    },
-  })
-
-  const gameData = await searchGameResponse.json()
+  const gameData = await getGameInfoFromIGDB(normalizedTitle)
 
   if (!gameData.length) {
     console.warn(
@@ -189,20 +155,29 @@ async function getGameInfoAndPrice(
     return
   }
 
-  const [cover, price] = await Promise.allSettled([
-    fetchCover(gameData[0]?.cover),
-    getGamePrice({
-      title: normalizedTitle,
-      platformCode,
-      regionCode,
-      conditionCode,
-    }),
-  ])
+  // Destructuring IGDB game object
+  const {
+    name: gameName,
+    cover,
+    first_release_date,
+    involved_companies,
+    summary,
+  } = gameData[0]
 
+  // Get game prices
+  const price = await getGamePrice({
+    title: normalizedTitle,
+    platformCode,
+    regionCode,
+    conditionCode,
+  })
+
+  // Retrieve other conditions from database
   const otherConditions = await prisma.condition.findMany({
     where: { code: { not: conditionCode } },
   })
 
+  // From the original condition searched will be searched other game conditions!
   const otherConditionsPrice = await Promise.allSettled(
     otherConditions.map(async (c) => ({
       conditionId: c.id,
@@ -215,20 +190,17 @@ async function getGameInfoAndPrice(
     })),
   )
 
-  if (price.status === 'fulfilled' && price.value.count > 0) {
-    // Scrivo sul database solo se ho trovato un prezzo!
+  // Write game only if there is some price!
+  if (price.count > 0) {
     await prisma.$transaction(async (tx) => {
       const game = await tx.game.create({
         data: {
-          title: gameData[0].name,
+          title: gameName,
           slug: normalizedTitle,
-          year: new Date(gameData[0].first_release_date * 1000).getFullYear(),
-          image:
-            cover.status === 'fulfilled'
-              ? `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${cover.value[0].image_id}.jpg`
-              : '',
-          developedBy: '',
-          description: gameData[0].summary,
+          year: new Date(+first_release_date * 1000).getFullYear(),
+          image: `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${cover.image_id}.jpg`,
+          developedBy: involved_companies.map((i) => i.company).join(', '),
+          description: summary,
         },
       })
 
@@ -257,10 +229,10 @@ async function getGameInfoAndPrice(
         data: {
           gameVariantId: gameVariant.id,
           source: 'ebay',
-          price: price.value.median,
-          maxPrice: price.value.maxPrice,
-          minPrice: price.value.minPrice,
-          itemsCount: price.value.count,
+          price: price.median,
+          maxPrice: price.maxPrice,
+          minPrice: price.minPrice,
+          itemsCount: price.count,
           currency: regionCode === 'PAL' ? 'EUR' : 'USD',
           lastUpdate: new Date(),
         },
@@ -300,19 +272,6 @@ async function getGameInfoAndPrice(
       })
     })
   }
-}
-
-async function fetchCover(cover_id: number) {
-  const gameCoverResponse = await fetch(`${IGDB_ENDPOINT}/v4/covers`, {
-    method: 'POST',
-    body: `fields *; where id = ${cover_id};`,
-    headers: {
-      Accept: 'application/json',
-      'Client-ID': TWITCH_API_CLIENT_ID!,
-      Authorization: `Bearer ${cachedTwitchToken.access_token}`,
-    },
-  })
-  return gameCoverResponse.json()
 }
 
 function normalizeGameTitle(searchKey: string): string {
