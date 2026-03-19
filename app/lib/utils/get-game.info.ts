@@ -29,6 +29,7 @@ export async function getGameInfoFromIGDB(title: string): Promise<IGDBGame[]> {
       const response = (await igdbAuth.json()) as TokenResponse
       cachedTwitchToken = response
       expiryTwitchTokenTimestamp = Date.now() + response.expires_in * 1000
+      console.log(cachedTwitchToken)
     }
   } catch (error) {
     console.error('Error while trying to login to Twitch!', error)

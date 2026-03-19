@@ -39,24 +39,29 @@ const getGameVariant = cache((id: string) => {
   )()
 })
 
-const getOtherGamesVariant = cache((gameId: number, conditionId: number) => {
-  return unstable_cache(
-    () => {
-      return prisma.gameVariant.findMany({
-        where: {
-          gameId: gameId,
-          AND: [{ conditionId: { not: conditionId } }],
-        },
-        select: {
-          condition: true,
-          priceSnapshots: true,
-        },
-      })
-    },
-    ['otherGamesVariant', gameId.toLocaleString()],
-    { revalidate: 86400, tags: ['otherGamesVariant', gameId.toLocaleString()] },
-  )()
-})
+const getOtherGamesVariant = cache(
+  (gameId: number, conditionId: number, regionId: number) => {
+    return unstable_cache(
+      () => {
+        return prisma.gameVariant.findMany({
+          where: {
+            gameId: gameId,
+            AND: [{ conditionId: { not: conditionId } }, { regionId }],
+          },
+          select: {
+            condition: true,
+            priceSnapshots: true,
+          },
+        })
+      },
+      ['otherGamesVariant', gameId.toLocaleString()],
+      {
+        revalidate: 86400,
+        tags: ['otherGamesVariant', gameId.toLocaleString()],
+      },
+    )()
+  },
+)
 
 export default async function Game({
   params,
@@ -73,6 +78,7 @@ export default async function Game({
   const otherGameConditions = await getOtherGamesVariant(
     searchedGame.game.id,
     searchedGame.condition.id,
+    searchedGame.region.id,
   )
 
   metadata.title = `${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name} price | RetroCoins!`
@@ -85,8 +91,7 @@ export default async function Game({
         className="text-white font-black text-xl tracking-wider w-full h-full uppercase"
       >
         <div className="rounded-sm relative bg-linear-to-r from-red-500 to-red-600 border-l-8 border-[#2247b5] p-4 mb-6 hover:border-yellow-400 hover:-translate-y-1 transition-all duration-200 cursor-pointer active:translate-0">
-          Press <span className="p-2 bg-[#2247b5] rounded-sm">start ►</span> to
-          find another retro-game!
+          Press start ► to find another retro-game!
         </div>
       </Link>
       <div className="flex gap-8 items-start">
@@ -102,8 +107,10 @@ export default async function Game({
             >
               {searchedGame?.game.title}
             </h1>
+            <p className="text-red-500 font-bold text-xl">
+              {searchedGame?.platform.name!}
+            </p>
             <GameInfo
-              platform={searchedGame?.platform.name!}
               condition={searchedGame?.condition.code!}
               region={searchedGame?.region.name!}
               release={searchedGame?.game.year!}

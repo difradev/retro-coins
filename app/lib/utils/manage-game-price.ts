@@ -93,8 +93,6 @@ function matchesCondition(title: string, condition: ConditionCode): boolean {
 
   switch (condition) {
     case 'LOOSE':
-      // Include: loose, cart/cartridge only, game only
-      // Exclude: complete, cib, box, sealed, new (in sealed context)
       const looseInclude = [
         'loose',
         'cart only',
@@ -117,17 +115,12 @@ function matchesCondition(title: string, condition: ConditionCode): boolean {
       const hasLooseKeyword = looseInclude.some((kw) => lowerTitle.includes(kw))
       const hasLooseExclude = looseExclude.some((kw) => lowerTitle.includes(kw))
 
-      // If explicitly marked as loose, include
-      // If no explicit condition mentioned, include as default
-      // If has exclude keywords, reject
       return (
         hasLooseKeyword ||
         (!hasLooseExclude && !hasCompleteOrSealedKeyword(lowerTitle))
       )
 
     case 'CIB':
-      // Include: complete, cib, boxed, with box/manual
-      // Exclude: loose, sealed, cart only
       const cibInclude = [
         'complete',
         'cib',
@@ -154,8 +147,6 @@ function matchesCondition(title: string, condition: ConditionCode): boolean {
       return hasCibKeyword && !hasCibExclude
 
     case 'SEALED':
-      // Include: sealed, new, factory sealed, unopened
-      // Exclude: opened, used, loose
       const sealedInclude = [
         'sealed',
         'brand new',
@@ -164,6 +155,7 @@ function matchesCondition(title: string, condition: ConditionCode): boolean {
         'new sealed',
         'bnib',
         'nib',
+        'new',
       ]
       const sealedExclude = ['opened', 'open', 'used', 'loose', 'no seal']
 

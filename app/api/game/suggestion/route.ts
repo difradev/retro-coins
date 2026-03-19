@@ -1,10 +1,19 @@
-import { GameSuggestion } from '@/app/generated/prisma/client'
 import prisma from '@/app/lib/database/prisma'
 import { NextRequest, NextResponse } from 'next/server'
 
+export type GameSuggestionResult = {
+  id: number
+  slug: string
+  title: string
+  platform: {
+    code: string
+    name: string
+  }
+}
+
 export async function GET(
   req: NextRequest,
-): Promise<NextResponse<ResponseWrapper<GameSuggestion[]>>> {
+): Promise<NextResponse<ResponseWrapper<GameSuggestionResult[]>>> {
   try {
     const query = req.nextUrl.searchParams.get('q')
 
@@ -22,6 +31,17 @@ export async function GET(
     const suggestions = await prisma.gameSuggestion.findMany({
       where: {
         slug: { contains: query.split(' ').join('-'), mode: 'insensitive' },
+      },
+      select: {
+        id: true,
+        slug: true,
+        title: true,
+        platform: {
+          select: {
+            code: true,
+            name: true,
+          },
+        },
       },
     })
 

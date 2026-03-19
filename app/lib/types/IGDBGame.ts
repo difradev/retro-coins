@@ -1,10 +1,10 @@
 export interface IGDBGame {
-  id: number
-  cover: Cover
+  id?: number
+  cover: Cover | string
   first_release_date: number
-  involved_companies: InvolvedCompany[]
+  involved_companies: InvolvedCompany[] | string
   name: string
-  platforms: number[]
+  platforms?: number[]
   summary: string
 }
 

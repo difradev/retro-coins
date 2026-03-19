@@ -15,14 +15,16 @@
  * - impostare un logger;
  */
 
-import {
-  ConditionCode,
-  PlatformCode,
-  RegionCode,
-} from '@/app/generated/prisma/enums'
+import { ConditionCode } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
+import { IGDBGame } from '@/app/lib/types/IGDBGame'
 import { getGamePrice } from '@/app/lib/utils/get-game-price'
 import { getGameInfoFromIGDB } from '@/app/lib/utils/get-game.info'
+import {
+  getPlatformCode,
+  getRegionCode,
+  normalizeGameTitle,
+} from '@/app/lib/utils/utils'
 import { NextResponse } from 'next/server'
 
 const platformFromSearchKey = new Set([
@@ -126,10 +128,10 @@ async function getGameInfoAndPrice(
     `[getGameInfoAndPrice] Processing: ${title} and searchId ${searchId}`,
   )
 
-  const normalizedTitle = normalizeGameTitle(title)
-  const conditionCode = getConditionCode(title)
-  const platformCode = getPlatformCode(title)
-  const regionCode = getRegionCode(title)
+  const normalizedTitle = normalizeGameTitle(title, excludeWordsFromSearchKey)
+  const conditionCode = 'CIB' as ConditionCode
+  const platformCode = getPlatformCode(title, platformFromSearchKey)
+  const regionCode = getRegionCode(title, gameRegionsFromSearchKey)
 
   console.log(
     `[getGameInfoAndPrice] Parsed - normalized: ${normalizedTitle}, platform: ${platformCode}, condition: ${conditionCode}, region: ${regionCode}`,
@@ -139,14 +141,18 @@ async function getGameInfoAndPrice(
     where: { slug: normalizedTitle },
   })
 
+  let gameData: IGDBGame[] = []
   if (gameAlreadyPresent) {
-    console.log(
-      `[getGameInfoAndPrice] Game already present! Skipped: ${normalizedTitle}`,
-    )
-    return
+    gameData[0] = {
+      name: gameAlreadyPresent.title,
+      cover: gameAlreadyPresent.image,
+      first_release_date: gameAlreadyPresent.year,
+      involved_companies: gameAlreadyPresent.developedBy,
+      summary: gameAlreadyPresent.description,
+    }
+  } else {
+    gameData = await getGameInfoFromIGDB(normalizedTitle)
   }
-
-  const gameData = await getGameInfoFromIGDB(normalizedTitle)
 
   if (!gameData.length) {
     console.warn(
@@ -193,16 +199,21 @@ async function getGameInfoAndPrice(
   // Write game only if there is some price!
   if (price.count > 0) {
     await prisma.$transaction(async (tx) => {
-      const game = await tx.game.create({
-        data: {
-          title: gameName,
-          slug: normalizedTitle,
-          year: new Date(+first_release_date * 1000).getFullYear(),
-          image: `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${cover.image_id}.jpg`,
-          developedBy: involved_companies.map((i) => i.company).join(', '),
-          description: summary,
-        },
-      })
+      let game = gameAlreadyPresent
+      if (!game) {
+        game = await tx.game.create({
+          data: {
+            title: gameName,
+            slug: normalizedTitle,
+            year: new Date(+first_release_date * 1000).getFullYear(),
+            image: `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${typeof cover === 'string' ? cover : cover.image_id}.jpg`,
+            developedBy: Array.isArray(involved_companies)
+              ? involved_companies.map((i) => i.company).join(', ')
+              : '',
+            description: summary,
+          },
+        })
+      }
 
       const [platform, condition, region] = await Promise.all([
         tx.platform.findFirst({ where: { code: platformCode } }),
@@ -218,7 +229,7 @@ async function getGameInfoAndPrice(
 
       const gameVariant = await tx.gameVariant.create({
         data: {
-          gameId: game.id,
+          gameId: game.id!,
           platformId: platform.id,
           conditionId: condition.id,
           regionId: region.id,
@@ -243,7 +254,7 @@ async function getGameInfoAndPrice(
           if (o.status === 'fulfilled') {
             const otherGameVariant = await tx.gameVariant.create({
               data: {
-                gameId: game.id,
+                gameId: game.id!,
                 platformId: platform.id,
                 conditionId: o.value.conditionId,
                 regionId: region.id,
@@ -272,35 +283,4 @@ async function getGameInfoAndPrice(
       })
     })
   }
-}
-
-function normalizeGameTitle(searchKey: string): string {
-  return searchKey
-    .split('-')
-    .filter((s) => !excludeWordsFromSearchKey.has(s))
-    .join('-')
-}
-
-function getPlatformCode(searchKey: string): PlatformCode {
-  return searchKey
-    .split('-')
-    .filter((s) => platformFromSearchKey.has(s))
-    .join('')
-    .toUpperCase() as PlatformCode
-}
-
-function getConditionCode(searchKey: string): ConditionCode {
-  return searchKey
-    .split('-')
-    .filter((s) => gameConditionsFromSearchKey.has(s))
-    .join('')
-    .toUpperCase() as ConditionCode
-}
-
-function getRegionCode(searchKey: string): RegionCode {
-  return searchKey
-    .split('-')
-    .filter((s) => gameRegionsFromSearchKey.has(s))
-    .join('')
-    .toUpperCase() as RegionCode
 }

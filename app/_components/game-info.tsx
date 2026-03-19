@@ -1,5 +1,4 @@
 type GameInfoProps = {
-  platform: string
   region: string
   condition: string
   release: number
@@ -7,21 +6,17 @@ type GameInfoProps = {
 
 export function GameInfo(props: GameInfoProps) {
   return (
-    <div className="flex flex-col gap-1 text-sm">
-      <div className="flex gap-4 w-full">
-        <p className="font-bold w-16">Platform</p>
-        <p className="">{props.platform}</p>
-      </div>
+    <div className="flex flex-col gap-1 border-2 border-dotted p-2">
       <div className="flex gap-4">
-        <p className="font-bold w-16">Region</p>
+        <p className="font-bold w-22">Region</p>
         <p className="">{props.region}</p>
       </div>
       <div className="flex gap-4">
-        <p className="font-bold w-16">Condition</p>
+        <p className="font-bold w-22">Condition</p>
         <p>{props.condition}</p>
       </div>
       <div className="flex gap-4">
-        <p className="font-bold w-16">Release</p>
+        <p className="font-bold w-22">Year</p>
         <p>{props.release}</p>
       </div>
     </div>

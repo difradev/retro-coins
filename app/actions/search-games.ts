@@ -1,9 +1,10 @@
 'use server'
 
 import { redirect } from 'next/navigation'
-import { ConditionCode, PlatformCode } from '../generated/prisma/client'
+import { ConditionCode, RegionCode } from '../generated/prisma/client'
 import prisma from '../lib/database/prisma'
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
+import { getPlatformCode, getSlugFromSearchQuery } from '../lib/utils/utils'
 
 type SearchGame = {
   success: boolean
@@ -14,16 +15,10 @@ type SearchGame = {
 
 export async function searchGames(formData: FormData): Promise<SearchGame> {
   const searchQuery = formData.get('search-input') as string
-  const selectedPlatform = formData.get('platform') as string | null
   const selectedCondition = formData.get('condition') as string | null
   const selectedRegion = formData.get('region') as string | null
 
-  if (
-    !searchQuery ||
-    !selectedPlatform ||
-    !selectedCondition ||
-    !selectedRegion
-  ) {
+  if (!searchQuery || !selectedCondition || !selectedRegion) {
     return {
       success: false,
       error: 'Missing required parameters',
@@ -31,15 +26,30 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
     }
   }
 
-  const platform = selectedPlatform as PlatformCode
+  const platformsAvailable = await prisma.platform.findMany({
+    select: {
+      code: true,
+    },
+  })
+
+  const platform = getPlatformCode(
+    searchQuery,
+    new Set(platformsAvailable.map((p) => p.code.toLocaleLowerCase())),
+  )
+  const slug = getSlugFromSearchQuery(
+    searchQuery,
+    new Set(platformsAvailable.map((p) => p.code.toLocaleLowerCase())),
+  )
   const condition = selectedCondition as ConditionCode
+  const region = selectedRegion as RegionCode
 
   const game = await prisma.gameVariant.findFirst({
     where: {
       AND: [
-        { game: { slug: searchQuery } },
+        { game: { slug } },
         { condition: { code: condition } },
         { platform: { code: platform } },
+        { region: { code: region } },
       ],
     },
     select: { id: true },
@@ -49,13 +59,13 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
     const rawQuery = searchQuery.replaceAll('-', ' ')
     await prisma.searchDemand.upsert({
       where: {
-        searchKey: `${searchQuery}-${selectedPlatform.toLowerCase()}-${selectedRegion.toLowerCase()}-${selectedCondition.toLowerCase()}`,
+        searchKey: `${searchQuery}-${selectedRegion.toLowerCase()}`,
       },
       update: { count7d: { increment: 1 } },
       create: {
-        searchKey: `${searchQuery}-${selectedPlatform.toLowerCase()}-${selectedRegion.toLowerCase()}-${selectedCondition.toLowerCase()}`,
+        searchKey: `${searchQuery}-${selectedRegion.toLowerCase()}`,
         count7d: 1,
-        rawQuery: `${rawQuery} ${selectedPlatform} ${selectedRegion} ${selectedCondition}`,
+        rawQuery: `${rawQuery} ${selectedRegion}`,
         createdAt: new Date(),
         processed: false,
       },

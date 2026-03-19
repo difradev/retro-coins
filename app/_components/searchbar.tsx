@@ -3,12 +3,8 @@
 import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { searchGames } from '../actions/search-games'
-import {
-  Condition,
-  GameSuggestion,
-  Platform,
-  Region,
-} from '../generated/prisma/client'
+import { GameSuggestionResult } from '../api/game/suggestion/route'
+import { Condition, Platform, Region } from '../generated/prisma/client'
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
 import Chip from './chip'
 import { Divider } from './divider'
@@ -39,7 +35,7 @@ export default function Searchbar({
   const [gameSelected, setGameSelected] = useState<boolean>(false)
   const [isOpenSuggestions, setIsOpenSuggestions] = useState<boolean>(false)
   const [isSearching, setIsSearching] = useState<boolean>(false)
-  const [suggestions, setSuggestions] = useState<GameSuggestion[]>([])
+  const [suggestions, setSuggestions] = useState<GameSuggestionResult[]>([])
   const [searchPlaceholderTexts, setSearchPlaceholderTexts] =
     useState<string>('Pokémon Blue')
 
@@ -94,36 +90,38 @@ export default function Searchbar({
     }
   }
 
-  const handleSelectGame = (gameCode: string, gameTitle: string) => {
+  const handleSelectGame = (
+    gameSlug: string,
+    gameTitle: string,
+    platform: { code: string; name: string },
+  ) => {
     setGameSelected(true)
     setIsOpenSuggestions(false)
     if (searchBarRef.current && hiddenSearchBarRef.current) {
-      searchBarRef.current.value = gameTitle
-      hiddenSearchBarRef.current.value = gameCode
+      searchBarRef.current.value = `${gameTitle} | ${platform.name}`
+      hiddenSearchBarRef.current.value = `${gameSlug}-${platform.code.toLocaleLowerCase()}`
     }
   }
 
   const handleSubmit = async (formData: FormData) => {
     const result = await searchGames(formData)
+    console.log(result)
     ripristineChips()
 
     if (
       !result.success &&
       result.errorCode === ErrorSearchGamesEnum.GameNotFound
     ) {
-      toast(
-        'Game not found! Check back later to see if prices are available.',
-        {
-          style: {
-            border: '1px solid #193cb8',
-            padding: '16px',
-            color: '#193cb8',
-            fontSize: '18px',
-            fontFamily: 'monospace',
-          },
-          icon: '',
+      toast("Price data not available yet! We're tracking demand", {
+        style: {
+          border: '1px solid #193cb8',
+          padding: '16px',
+          color: '#193cb8',
+          fontSize: '18px',
+          fontFamily: 'monospace',
         },
-      )
+        icon: '',
+      })
     } else if (
       !result.success &&
       result.errorCode === ErrorSearchGamesEnum.GeneralError
@@ -172,10 +170,12 @@ export default function Searchbar({
                   suggestions.map((s) => (
                     <p
                       className="cursor-pointer hover:bg-neutral-100 p-4 text-xl"
-                      onClick={() => handleSelectGame(s.slug, s.title)}
+                      onClick={() =>
+                        handleSelectGame(s.slug, s.title, s.platform)
+                      }
                       key={s.id}
                     >
-                      {s.title}
+                      {`${s.title} | ${s.platform.name}`}
                     </p>
                   ))
                 ) : (

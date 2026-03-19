@@ -79,7 +79,7 @@ model PriceSnapshot {
 
 model GameSuggestion {
   id         Int    @id @default(autoincrement())
-  title      String @unique
+  title      String
   slug       String
   platformId Int
 
