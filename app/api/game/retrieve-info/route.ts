@@ -15,7 +15,7 @@
  *   se disponibili.
  * - Capire se implementare la chiamata verso il servizio esterno (THEGAMEDB) per recuperare SOLO le versioni disponibili per un determinato gioco.
  * - Recuperare copertine da thegamedb.
- * 
+ *
  */
 
 import { ConditionCode } from '@/app/generated/prisma/enums'
@@ -30,6 +30,8 @@ import {
 } from '@/app/lib/utils/utils'
 import { NextResponse } from 'next/server'
 
+const CONDITIONS = ['CIB', 'SEALED', 'LOOSE'] as ConditionCode[]
+
 const platformFromSearchKey = new Set([
   'gb',
   'gba',
@@ -38,11 +40,8 @@ const platformFromSearchKey = new Set([
   'sms',
   'smd',
 ])
-
 const gameConditionsFromSearchKey = new Set(['loose', 'cib', 'sealed'])
-
 const gameRegionsFromSearchKey = new Set(['pal', 'ntsc', 'jap'])
-
 const excludeWordsFromSearchKey = new Set([
   ...gameRegionsFromSearchKey,
   ...gameConditionsFromSearchKey,
@@ -173,37 +172,28 @@ async function getGameInfoAndPrice(
     summary,
   } = gameData[0]
 
-  // Get game prices
-  // Rivedere, magari unificare per tutte le condizioni e le regioni.
-  const price = await getGamePrice({
-    title: normalizedTitle,
-    platformCode,
-    regionCode,
-    conditionCode,
-  })
-
-  // Retrieve other conditions from database
-  const otherConditions = await prisma.condition.findMany({
-    where: { code: { not: conditionCode } },
-  })
-
-  // From the original condition searched will be searched other game conditions!
-  const otherConditionsPrice = await Promise.allSettled(
-    otherConditions.map(async (c) => ({
-      conditionId: c.id,
+  // Get game price
+  const gamePrices = await Promise.allSettled(
+    CONDITIONS.map(async (c) => ({
+      conditionCode: c,
       price: await getGamePrice({
         title: normalizedTitle,
         platformCode,
         regionCode,
-        conditionCode: c.code,
+        conditionCode: c,
       }),
     })),
   )
 
   // Write game only if there is some price!
-  if (price.count > 0) {
+  if (
+    gamePrices.length &&
+    gamePrices.every((gp) => gp.status === 'fulfilled') &&
+    gamePrices.some((gp) => gp.value.price.count > 0)
+  ) {
     await prisma.$transaction(async (tx) => {
       let game = gameAlreadyPresent
+
       if (!game) {
         game = await tx.game.create({
           data: {
@@ -212,72 +202,48 @@ async function getGameInfoAndPrice(
             year: new Date(+first_release_date * 1000).getFullYear(),
             image: `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${typeof cover === 'string' ? cover : cover.image_id}.jpg`,
             developedBy: Array.isArray(involved_companies)
-              ? involved_companies.map((i) => i.company).join(', ')
+              ? involved_companies.map((i) => i.company.name).join(', ')
               : '',
             description: summary,
           },
         })
       }
 
-      const [platform, condition, region] = await Promise.all([
-        tx.platform.findFirst({ where: { code: platformCode } }),
-        tx.condition.findFirst({ where: { code: conditionCode } }),
-        tx.region.findFirst({ where: { code: regionCode } }),
-      ])
-
-      if (!platform || !condition || !region) {
-        throw new Error(
-          `Missing references: platform=${!!platform}, condition=${!!condition}, region=${!!region}`,
-        )
-      }
-
-      const gameVariant = await tx.gameVariant.create({
-        data: {
-          gameId: game.id!,
-          platformId: platform.id,
-          conditionId: condition.id,
-          regionId: region.id,
-        },
-      })
-
-      await tx.priceSnapshot.create({
-        data: {
-          gameVariantId: gameVariant.id,
-          source: 'ebay',
-          price: price.median,
-          maxPrice: price.maxPrice,
-          minPrice: price.minPrice,
-          itemsCount: price.count,
-          currency: regionCode === 'PAL' ? 'EUR' : 'USD',
-          lastUpdate: new Date(),
-        },
-      })
-
       await Promise.all(
-        otherConditionsPrice.map(async (o) => {
-          if (o.status === 'fulfilled') {
-            const otherGameVariant = await tx.gameVariant.create({
-              data: {
-                gameId: game.id!,
-                platformId: platform.id,
-                conditionId: o.value.conditionId,
-                regionId: region.id,
-              },
-            })
+        gamePrices.map(async (gp) => {
+          const [platform, condition, region] = await Promise.all([
+            tx.platform.findFirst({ where: { code: platformCode } }),
+            tx.condition.findFirst({ where: { code: gp.value.conditionCode } }),
+            tx.region.findFirst({ where: { code: regionCode } }),
+          ])
 
-            await tx.priceSnapshot.create({
-              data: {
-                gameVariantId: otherGameVariant.id,
-                source: 'ebay',
-                price: o.value.price.median,
-                itemsCount: o.value.price.count,
-                maxPrice: o.value.price.maxPrice,
-                minPrice: o.value.price.minPrice,
-                currency: regionCode === 'PAL' ? 'EUR' : 'USD',
-                lastUpdate: new Date(),
-              },
-            })
+          if (!platform || !condition || !region) {
+            throw new Error(
+              `Missing references: platform=${!!platform}, condition=${!!condition}, region=${!!region}`,
+            )
           }
+
+          const gameVariant = await tx.gameVariant.create({
+            data: {
+              gameId: game.id!,
+              platformId: platform.id,
+              conditionId: condition.id,
+              regionId: region.id,
+            },
+          })
+
+          await tx.priceSnapshot.create({
+            data: {
+              gameVariantId: gameVariant.id,
+              source: 'ebay',
+              price: gp.value.price.median,
+              maxPrice: gp.value.price.maxPrice,
+              minPrice: gp.value.price.minPrice,
+              itemsCount: gp.value.price.count,
+              currency: regionCode === 'PAL' ? 'EUR' : 'USD',
+              lastUpdate: new Date(),
+            },
+          })
         }),
       )
 

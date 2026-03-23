@@ -72,6 +72,22 @@ const getOtherGamesVariant = cache(
   },
 )
 
+const getGameRegions = cache((id: number) => {
+  return unstable_cache(
+    () => {
+      return prisma.gameVariant.findFirst({
+        where: { id: +id },
+        select: {
+          id: true,
+          region: true,
+        },
+      })
+    },
+    ['gameRegions', id.toLocaleString()],
+    { revalidate: 86400, tags: ['gameRegions', id.toLocaleString()] },
+  )()
+})
+
 export default async function Game({
   params,
 }: {
@@ -84,14 +100,15 @@ export default async function Game({
     redirect('/')
   }
 
-  console.log(searchedGame)
   const otherGameConditions = await getOtherGamesVariant(
     searchedGame.game.id,
     searchedGame.condition.id,
     searchedGame.region.id,
     searchedGame.platform.id,
   )
-  console.log(otherGameConditions)
+
+  const gameRegions = await getGameRegions(searchedGame.id)
+  console.log(gameRegions)
 
   metadata.title = `${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name} price | RetroCoins!`
   metadata.description = `Find the right price for ${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name}`
@@ -107,11 +124,18 @@ export default async function Game({
         </div>
       </Link>
       <div className="flex gap-8 items-start">
-        <img
-          src={searchedGame?.game.image}
-          alt={`${searchedGame?.game.title} ${searchedGame?.condition.name} price`}
-          className="w-1/2 rounded-sm shadow-lg"
-        />
+        <div className="flex flex-col gap-4 w-2/3 ">
+          <img
+            src={searchedGame?.game.image}
+            alt={`${searchedGame?.game.title} ${searchedGame?.condition.name} price`}
+            className="w-full rounded-sm shadow-lg"
+          />
+          <hr className="w-full border border-blue-950" />
+          <div className="flex flex-col gap-1">
+            <p className="text-lg font-bold">Game description</p>
+            <p className="text-lg">{searchedGame?.game.description}</p>
+          </div>
+        </div>
         <div className="flex flex-col gap-6">
           <div className="flex flex-col gap-2">
             <h1
@@ -119,13 +143,11 @@ export default async function Game({
             >
               {searchedGame?.game.title}
             </h1>
-            <p className="text-red-500 font-bold text-xl">
-              {searchedGame?.platform.name!}
-            </p>
             <GameInfo
-              condition={searchedGame?.condition.code!}
-              region={searchedGame?.region.name!}
-              release={searchedGame?.game.year!}
+              platform={searchedGame.platform.name}
+              developers={searchedGame.game.developedBy}
+              release={searchedGame?.game.year}
+              region={searchedGame?.region.name}
             />
           </div>
           <Price
@@ -135,11 +157,6 @@ export default async function Game({
               region: searchedGame?.region.name!,
             }}
           />
-          <hr className="w-full border border-blue-950" />
-          <div className="flex flex-col gap-1">
-            <p className="text-lg font-bold">Game description</p>
-            <p className="text-xl">{searchedGame?.game.description}</p>
-          </div>
           <hr className="w-full border border-blue-950" />
           {/* Prices by condition */}
           <div className="flex flex-col gap-1">

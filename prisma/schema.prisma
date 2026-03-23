@@ -30,6 +30,8 @@ model GameVariant {
   condition      Condition       @relation(fields: [conditionId], references: [id])
   region         Region          @relation(fields: [regionId], references: [id])
   priceSnapshots PriceSnapshot[]
+
+  @@unique([gameId, platformId, conditionId, regionId])
 }
 
 model Platform {

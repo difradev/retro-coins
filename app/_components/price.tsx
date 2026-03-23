@@ -34,7 +34,7 @@ export function Price(props: PriceProps) {
         <div className="absolute inset-1 border border-blue-300 pointer-events-none"></div>
         <div className="h-2 bg-blue-950 mb-4"></div>
         <p className="text-xs tracking-widest uppercase text-blue-300">
-          Market price - {props.info.condition} ({props.info.region})
+          Market price
         </p>
         <div className="flex flex-col gap-4">
           <p
@@ -49,7 +49,6 @@ export function Price(props: PriceProps) {
         </div>
         <div className="mt-4 opacity-90">
           <p>Based on {props.priceSnapshot.itemsCount} tracked sales</p>
-          {/* <p className="text-xs">(Extreme values removed)</p> */}
           <hr className="my-1 border border-blue-300" />
           <p className="text-sm">Last update {lastUpdate}</p>
         </div>
@@ -58,6 +57,17 @@ export function Price(props: PriceProps) {
         Prices are calculated using the median of recent sales. <br /> Extreme
         low and high values are removed to avoid distortions.
       </Tooltip>
+      <div className="flex gap-1">
+        <button className="bg-[#2247b5] text-white p-2 rounded-sm border-2 border-blue-950 cursor-pointer">
+          PAL
+        </button>
+        <button className="bg-white text-[#2247b5] p-2 rounded-sm border-2 border-blue-950 cursor-pointer">
+          NTSC
+        </button>
+        <button className="bg-white text-[#2247b5] p-2 rounded-sm border-2 border-blue-950 cursor-pointer">
+          JAP
+        </button>
+      </div>
     </div>
   )
 }
