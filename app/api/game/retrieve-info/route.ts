@@ -9,10 +9,13 @@
  *
  * Protetto da API_SECRET, non potrà mai essere invocato da nessun client se non dal batch di recupero info.
  *
- * TODO:
- * - migliorare tipizzazione;
- * - migliorare gestione degli errori (errori più parlanti);
- * - impostare un logger;
+ * TODO
+ * ----
+ * - Arriva una condizione di default (CIB) e una regione di default (PAL). Bisogna recuperare automaticamente le altre condizioni e le altre regioni
+ *   se disponibili.
+ * - Capire se implementare la chiamata verso il servizio esterno (THEGAMEDB) per recuperare SOLO le versioni disponibili per un determinato gioco.
+ * - Recuperare copertine da thegamedb.
+ * 
  */
 
 import { ConditionCode } from '@/app/generated/prisma/enums'
@@ -171,6 +174,7 @@ async function getGameInfoAndPrice(
   } = gameData[0]
 
   // Get game prices
+  // Rivedere, magari unificare per tutte le condizioni e le regioni.
   const price = await getGamePrice({
     title: normalizedTitle,
     platformCode,

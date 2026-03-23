@@ -4,34 +4,19 @@ import { useEffect, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import { searchGames } from '../actions/search-games'
 import { GameSuggestionResult } from '../api/game/suggestion/route'
-import { Condition, Platform, Region } from '../generated/prisma/client'
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
-import Chip from './chip'
 import { Divider } from './divider'
 import { SearchbarSpinner } from './searchbar-spinner'
-
-type SearchbarProps = {
-  platforms: Platform[]
-  conditions: Condition[]
-  regions: Region[]
-}
 
 const placeholderTextsMap = new Map<number, string>()
   .set(0, 'Sonic the hedgehog')
   .set(1, 'Pokémon Blue')
   .set(2, 'Chrono Trigger')
 
-export default function Searchbar({
-  conditions,
-  regions,
-}: SearchbarProps): React.ReactNode {
+export default function Searchbar(): React.ReactNode {
   const searchBarRef = useRef<HTMLInputElement>(null)
   const hiddenSearchBarRef = useRef<HTMLInputElement>(null)
   const timeoutRef = useRef<NodeJS.Timeout | null>(null)
-  const [selectedCondition, setSelectedCondition] = useState<string | null>(
-    null,
-  )
-  const [selectedRegion, setSelectedRegion] = useState<string | null>(null)
   const [gameSelected, setGameSelected] = useState<boolean>(false)
   const [isOpenSuggestions, setIsOpenSuggestions] = useState<boolean>(false)
   const [isSearching, setIsSearching] = useState<boolean>(false)
@@ -51,19 +36,6 @@ export default function Searchbar({
 
     return () => clearInterval(intervalId)
   }, [])
-
-  const ripristineChips = () => {
-    setSelectedCondition(null)
-    setSelectedRegion(null)
-  }
-
-  const toggleCondition = (code: string) => {
-    setSelectedCondition((prev) => (prev === code ? null : code))
-  }
-
-  const toggleRegion = (code: string) => {
-    setSelectedRegion((prev) => (prev === code ? null : code))
-  }
 
   const handleSearchbar = async (value: string) => {
     if (timeoutRef.current) {
@@ -105,8 +77,6 @@ export default function Searchbar({
 
   const handleSubmit = async (formData: FormData) => {
     const result = await searchGames(formData)
-    console.log(result)
-    ripristineChips()
 
     if (
       !result.success &&
@@ -144,6 +114,8 @@ export default function Searchbar({
         <div className="relative">
           <div className="w-full flex gap-2">
             <input type="hidden" name="search-input" ref={hiddenSearchBarRef} />
+            <input type="hidden" name="condition" value="CIB" />
+            <input type="hidden" name="region" value="PAL" />
             <label className="relative w-full">
               <input
                 autoComplete="off"
@@ -157,7 +129,7 @@ export default function Searchbar({
             </label>
             <button
               type="submit"
-              disabled={!gameSelected || !selectedCondition || !selectedRegion}
+              disabled={!gameSelected}
               className="py-2 px-4 flex items-center gap-2 bg-linear-to-r from-red-500 to-red-600 text-neutral-100 rounded-sm uppercase font-black cursor-pointer disabled:cursor-not-allowed border-l-8 border-[#2247b5] hover:border-yellow-400 hover:-translate-y-1 duration-200 active:translate-0 transition-all"
             >
               Start <span>►</span>
@@ -188,7 +160,6 @@ export default function Searchbar({
           )}
         </div>
         <p>Based on real sales • Median price • Outliers removed</p>
-        <Divider hight="h-2" />
         <div className="flex flex-col gap-4">
           {/* Chips for platforms */}
           {/* <div className="flex flex-col gap-1">
@@ -209,7 +180,7 @@ export default function Searchbar({
             </div>
           </div> */}
           {/* Chips for conditions */}
-          <div className="flex flex-col gap-1">
+          {/* <div className="flex flex-col gap-1">
             <p className="text-sm uppercase font-semibold">Conditions</p>
             <div className="flex gap-2 justify-items-start flex-wrap">
               {conditions?.map((c) => (
@@ -229,9 +200,9 @@ export default function Searchbar({
                 />
               )}
             </div>
-          </div>
+          </div> */}
           {/* Chips for regions */}
-          <div className="flex flex-col gap-1">
+          {/* <div className="flex flex-col gap-1">
             <p className="text-sm uppercase font-semibold">Regions</p>
             <div className="flex gap-2 justify-items-start flex-wrap">
               {regions?.map((r) => (
@@ -247,7 +218,7 @@ export default function Searchbar({
                 <input type="hidden" name="region" value={selectedRegion} />
               )}
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
     </form>

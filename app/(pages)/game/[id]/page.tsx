@@ -40,13 +40,22 @@ const getGameVariant = cache((id: string) => {
 })
 
 const getOtherGamesVariant = cache(
-  (gameId: number, conditionId: number, regionId: number) => {
+  (
+    gameId: number,
+    conditionId: number,
+    regionId: number,
+    platformId: number,
+  ) => {
     return unstable_cache(
       () => {
         return prisma.gameVariant.findMany({
           where: {
             gameId: gameId,
-            AND: [{ conditionId: { not: conditionId } }, { regionId }],
+            AND: [
+              { conditionId: { not: conditionId } },
+              { regionId },
+              { platformId },
+            ],
           },
           select: {
             condition: true,
@@ -75,11 +84,14 @@ export default async function Game({
     redirect('/')
   }
 
+  console.log(searchedGame)
   const otherGameConditions = await getOtherGamesVariant(
     searchedGame.game.id,
     searchedGame.condition.id,
     searchedGame.region.id,
+    searchedGame.platform.id,
   )
+  console.log(otherGameConditions)
 
   metadata.title = `${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name} price | RetroCoins!`
   metadata.description = `Find the right price for ${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name}`
