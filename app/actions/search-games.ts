@@ -24,7 +24,6 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
     }
   }
 
-  let condition = null
   let region = null
   let platform = null
   let slug = null
@@ -64,7 +63,7 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
     }
   }
 
-  if (!region || !slug || !platform) {
+  if (!slug || !platform) {
     return {
       success: false,
       error: 'Search Demand error!',
@@ -72,14 +71,9 @@ export async function searchGames(formData: FormData): Promise<SearchGame> {
     }
   }
 
-  const game = await prisma.gameVariant.findFirst({
+  const game = await prisma.game.findFirst({
     where: {
-      AND: [
-        { game: { slug } },
-        { condition: { code: 'CIB' } }, // CIB di default
-        { platform: { code: platform } },
-        { region: { code: region.region.code } },
-      ],
+      slug,
     },
     select: { id: true },
   })

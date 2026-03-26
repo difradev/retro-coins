@@ -98,7 +98,7 @@ function getMarketplaceByRegion(regionCode: RegionCode): string {
   const marketplaceMap: Record<RegionCode, string> = {
     PAL: 'EBAY_GB',
     NTSC: 'EBAY_US',
-    JAP: 'EBAY_US',
+    NTSC_J: 'EBAY_JP',
   }
   return marketplaceMap[regionCode] || 'EBAY_US'
 }

@@ -1,7 +1,6 @@
-import { Prisma } from '@/app/generated/prisma/browser'
 import { PrismaClient } from '@/app/generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
 import { faker } from '@faker-js/faker'
+import { PrismaPg } from '@prisma/adapter-pg'
 
 const adapter = new PrismaPg({
   connectionString: process.env.DATABASE_URL,
@@ -40,7 +39,7 @@ const createManyRegions = async () =>
     data: [
       { code: 'PAL', name: 'PAL' },
       { code: 'NTSC', name: 'NTSC' },
-      { code: 'JAP', name: 'Japan' },
+      { code: 'NTSC_J', name: 'NTSC-J' },
     ],
     skipDuplicates: true,
   })
@@ -333,137 +332,136 @@ const createSearchDemands = async () =>
     ],
   })
 
-const createGamesSuggestion = async () =>
-  await prisma.gameSuggestion.createMany({
-    data: [
-      { code: 'sonic-the-hedgehog', title: 'Sonic the Hedgehog' },
-      { code: 'metroid-fusion', title: 'Metroid Fusion' },
-      { code: 'metroid-zero-mission', title: 'Metroid Zero Mission' },
-      {
-        code: 'castlevania-aria-of-sorrow',
-        title: 'Castlevania Aria of Sorrow',
-      },
-      {
-        code: 'castlevania-circle-of-the-moon',
-        title: 'Castlevania Circle of the Moon',
-      },
-      {
-        code: 'castlevania-harmony-of-dissonance',
-        title: 'Castlevania Harmony of Dissonance',
-      },
-      { code: 'pokemon-emerald', title: 'Pokémon Emerald' },
-      { code: 'pokemon-fire-red', title: 'Pokémon FireRed' },
-      { code: 'pokemon-leaf-green', title: 'Pokémon LeafGreen' },
-      { code: 'advance-wars', title: 'Advance Wars' },
-      {
-        code: 'advance-wars-2-black-hole-rising',
-        title: 'Advance Wars 2 Black Hole Rising',
-      },
-      { code: 'panorama-cotton', title: 'Panorama Cotton' },
-      { code: 'eliminate-down', title: 'Eliminate Down' },
-      { code: 'twinkle-tale', title: 'Twinkle Tale' },
-      { code: 'battle-mania-daiginjou', title: 'Battle Mania Daiginjou' },
-      { code: 'gley-lancer', title: 'Gley Lancer' },
-      { code: 'pulseman', title: 'Pulseman' },
-      { code: 'alien-soldier', title: 'Alien Soldier' },
-      { code: 'mega-man-the-wily-wars', title: 'Mega Man: The Wily Wars' },
-      { code: 'castlevania-bloodlines', title: 'Castlevania: Bloodlines' },
-      { code: 'contra-hard-corps', title: 'Contra: Hard Corps' },
-      { code: 'snow-bros', title: 'Snow Bros.' },
-      { code: 'the-punisher', title: 'The Punisher' },
-      {
-        code: 'yu-yu-hakusho-makyou-toitsusen',
-        title: 'Yu Yu Hakusho: Makyou Toitsusen',
-      },
-      { code: 'magical-taruruuto-kun', title: 'Magical Taruruuto-kun' },
-      { code: 'verytex', title: 'Verytex' },
-      { code: 'undead-line', title: 'Undead Line' },
-      { code: 'rent-a-hero', title: 'Rent-A-Hero' },
-      { code: 'langrisser-ii', title: 'Langrisser II' },
-      { code: 'devil-hunter-yohko', title: 'Devil Hunter Yohko' },
-      { code: 'battle-golfer-yui', title: 'Battle Golfer Yui' },
-      { code: 'dahna-megami-tanjou', title: 'Dahna: Megami Tanjou' },
-      { code: 'el-viento', title: 'El Viento' },
-      { code: 'chakan-the-forever-man', title: 'Chakan: The Forever Man' },
-      { code: 'zero-tolerance', title: 'Zero Tolerance' },
-      { code: 'the-ooze', title: 'The Ooze' },
-      {
-        code: 'spider-man-and-venom-separation-anxiety',
-        title: 'Spider-Man and Venom: Separation Anxiety',
-      },
-      { code: 'time-killers', title: 'Time Killers' },
-      { code: 'crusader-of-centy', title: 'Crusader of Centy' },
-      { code: 'beyond-oasis', title: 'Beyond Oasis' },
-      { code: 'light-crusader', title: 'Light Crusader' },
-      { code: 'power-strike-ii', title: 'Power Strike II' },
-      { code: 'bomber-raid', title: 'Bomber Raid' },
-      { code: 'mah-jong', title: 'Mah-Jong' },
-      { code: 'great-ice-hockey', title: 'Great Ice Hockey' },
-      { code: 'masters-of-combat', title: 'Masters of Combat' },
-      { code: 'the-ninja', title: 'The Ninja' },
-      { code: 'golden-axe-warrior', title: 'Golden Axe Warrior' },
-      {
-        code: 'golvellius-valley-of-doom',
-        title: 'Golvellius: Valley of Doom',
-      },
-      { code: 'ys-the-vanished-omens', title: 'Ys: The Vanished Omens' },
-      {
-        code: 'alex-kidd-in-shinobi-world',
-        title: 'Alex Kidd in Shinobi World',
-      },
-      {
-        code: 'wonder-boy-iii-the-dragons-trap',
-        title: "Wonder Boy III: The Dragon's Trap",
-      },
-      { code: 'master-of-darkness', title: 'Master of Darkness' },
-      {
-        code: 'zillion-ii-the-tri-formation',
-        title: 'Zillion II: The Tri Formation',
-      },
-      { code: 'montezumas-revenge', title: "Montezuma's Revenge" },
-      { code: 'galaxy-force', title: 'Galaxy Force' },
-      { code: 'r-type', title: 'R-Type' },
-      { code: 'psycho-fox', title: 'Psycho Fox' },
-      {
-        code: 'wonder-boy-in-monster-land',
-        title: 'Wonder Boy in Monster Land',
-      },
-      {
-        code: 'rambo-first-blood-part-ii',
-        title: 'Rambo: First Blood Part II',
-      },
-    ],
-  })
+// const createGamesSuggestion = async () =>
+//   await prisma.gameSuggestion.createMany({
+//     data: [
+//       { code: 'sonic-the-hedgehog', title: 'Sonic the Hedgehog' },
+//       { code: 'metroid-fusion', title: 'Metroid Fusion' },
+//       { code: 'metroid-zero-mission', title: 'Metroid Zero Mission' },
+//       {
+//         code: 'castlevania-aria-of-sorrow',
+//         title: 'Castlevania Aria of Sorrow',
+//       },
+//       {
+//         code: 'castlevania-circle-of-the-moon',
+//         title: 'Castlevania Circle of the Moon',
+//       },
+//       {
+//         code: 'castlevania-harmony-of-dissonance',
+//         title: 'Castlevania Harmony of Dissonance',
+//       },
+//       { code: 'pokemon-emerald', title: 'Pokémon Emerald' },
+//       { code: 'pokemon-fire-red', title: 'Pokémon FireRed' },
+//       { code: 'pokemon-leaf-green', title: 'Pokémon LeafGreen' },
+//       { code: 'advance-wars', title: 'Advance Wars' },
+//       {
+//         code: 'advance-wars-2-black-hole-rising',
+//         title: 'Advance Wars 2 Black Hole Rising',
+//       },
+//       { code: 'panorama-cotton', title: 'Panorama Cotton' },
+//       { code: 'eliminate-down', title: 'Eliminate Down' },
+//       { code: 'twinkle-tale', title: 'Twinkle Tale' },
+//       { code: 'battle-mania-daiginjou', title: 'Battle Mania Daiginjou' },
+//       { code: 'gley-lancer', title: 'Gley Lancer' },
+//       { code: 'pulseman', title: 'Pulseman' },
+//       { code: 'alien-soldier', title: 'Alien Soldier' },
+//       { code: 'mega-man-the-wily-wars', title: 'Mega Man: The Wily Wars' },
+//       { code: 'castlevania-bloodlines', title: 'Castlevania: Bloodlines' },
+//       { code: 'contra-hard-corps', title: 'Contra: Hard Corps' },
+//       { code: 'snow-bros', title: 'Snow Bros.' },
+//       { code: 'the-punisher', title: 'The Punisher' },
+//       {
+//         code: 'yu-yu-hakusho-makyou-toitsusen',
+//         title: 'Yu Yu Hakusho: Makyou Toitsusen',
+//       },
+//       { code: 'magical-taruruuto-kun', title: 'Magical Taruruuto-kun' },
+//       { code: 'verytex', title: 'Verytex' },
+//       { code: 'undead-line', title: 'Undead Line' },
+//       { code: 'rent-a-hero', title: 'Rent-A-Hero' },
+//       { code: 'langrisser-ii', title: 'Langrisser II' },
+//       { code: 'devil-hunter-yohko', title: 'Devil Hunter Yohko' },
+//       { code: 'battle-golfer-yui', title: 'Battle Golfer Yui' },
+//       { code: 'dahna-megami-tanjou', title: 'Dahna: Megami Tanjou' },
+//       { code: 'el-viento', title: 'El Viento' },
+//       { code: 'chakan-the-forever-man', title: 'Chakan: The Forever Man' },
+//       { code: 'zero-tolerance', title: 'Zero Tolerance' },
+//       { code: 'the-ooze', title: 'The Ooze' },
+//       {
+//         code: 'spider-man-and-venom-separation-anxiety',
+//         title: 'Spider-Man and Venom: Separation Anxiety',
+//       },
+//       { code: 'time-killers', title: 'Time Killers' },
+//       { code: 'crusader-of-centy', title: 'Crusader of Centy' },
+//       { code: 'beyond-oasis', title: 'Beyond Oasis' },
+//       { code: 'light-crusader', title: 'Light Crusader' },
+//       { code: 'power-strike-ii', title: 'Power Strike II' },
+//       { code: 'bomber-raid', title: 'Bomber Raid' },
+//       { code: 'mah-jong', title: 'Mah-Jong' },
+//       { code: 'great-ice-hockey', title: 'Great Ice Hockey' },
+//       { code: 'masters-of-combat', title: 'Masters of Combat' },
+//       { code: 'the-ninja', title: 'The Ninja' },
+//       { code: 'golden-axe-warrior', title: 'Golden Axe Warrior' },
+//       {
+//         code: 'golvellius-valley-of-doom',
+//         title: 'Golvellius: Valley of Doom',
+//       },
+//       { code: 'ys-the-vanished-omens', title: 'Ys: The Vanished Omens' },
+//       {
+//         code: 'alex-kidd-in-shinobi-world',
+//         title: 'Alex Kidd in Shinobi World',
+//       },
+//       {
+//         code: 'wonder-boy-iii-the-dragons-trap',
+//         title: "Wonder Boy III: The Dragon's Trap",
+//       },
+//       { code: 'master-of-darkness', title: 'Master of Darkness' },
+//       {
+//         code: 'zillion-ii-the-tri-formation',
+//         title: 'Zillion II: The Tri Formation',
+//       },
+//       { code: 'montezumas-revenge', title: "Montezuma's Revenge" },
+//       { code: 'galaxy-force', title: 'Galaxy Force' },
+//       { code: 'r-type', title: 'R-Type' },
+//       { code: 'psycho-fox', title: 'Psycho Fox' },
+//       {
+//         code: 'wonder-boy-in-monster-land',
+//         title: 'Wonder Boy in Monster Land',
+//       },
+//       {
+//         code: 'rambo-first-blood-part-ii',
+//         title: 'Rambo: First Blood Part II',
+//       },
+//     ],
+//   })
 
-const gameData: Prisma.GameCreateInput[] = [
-  {
-    title: 'Pokemon Red',
-    description: 'This is a dummy text',
-    image: '',
-    year: 1996,
-    developedBy: '',
-    slug: '',
-    gameVariants: {
-      create: [
-        {
-          platformId: 1,
-          conditionId: 2,
-          regionId: 1,
-        },
-      ],
-    },
-  },
-]
+// const gameData: Prisma.GameCreateInput[] = [
+//   {
+//     title: 'Pokemon Red',
+//     description: 'This is a dummy text',
+//     image: '',
+//     year: 1996,
+//     developedBy: '',
+//     slug: '',
+//     gameVariants: {
+//       create: [
+//         {
+//           platformId: 1,
+//           conditionId: 2,
+//           regionId: 1,
+//         },
+//       ],
+//     },
+//   },
+// ]
 
 export async function main() {
   // await createManyPlatforms()
   // await createManyConditions()
-  // await createManyRegions()
+  await createManyRegions()
   // for (const g of gameData) {
   //   await prisma.game.create({ data: g })
   // }
-  createSearchDemands()
-  createGamesSuggestion()
+  // createSearchDemands()
   // createGamesSuggestion()
 }
 

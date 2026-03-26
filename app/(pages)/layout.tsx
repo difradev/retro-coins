@@ -19,7 +19,7 @@ export default function RootLayout({
         className={`${libreCaslonText.className} antialiased text-blue-950 transition-all relative`}
       >
         <Toaster position="bottom-center" />
-        <div className="flex w-4xl mx-auto">{children}</div>
+        <div className="flex w-4xl mx-auto py-12 h-screen">{children}</div>
         <CornerLabel />
       </body>
     </html>

@@ -1,5 +1,7 @@
+import { Divider } from '@/app/_components/divider'
 import { GameInfo } from '@/app/_components/game-info'
 import { Price } from '@/app/_components/price'
+import { Regions } from '@/app/_components/regions'
 import prisma from '@/app/lib/database/prisma'
 import { Metadata } from 'next'
 import { unstable_cache } from 'next/cache'
@@ -19,11 +21,11 @@ const youngSerif = Young_Serif({
   weight: '400',
 })
 
-const getGameVariant = cache((id: string) => {
+const getGameVariant = cache((gameId: string, regionId?: number) => {
   return unstable_cache(
     () => {
       return prisma.gameVariant.findFirst({
-        where: { id: +id },
+        where: { AND: [{ gameId: +gameId }, { regionId }] },
         select: {
           id: true,
           game: true,
@@ -34,8 +36,8 @@ const getGameVariant = cache((id: string) => {
         },
       })
     },
-    ['gameVariant', id],
-    { revalidate: 86400, tags: ['gameVariant', id] },
+    ['gameVariant', gameId, String(regionId)],
+    { revalidate: 86400, tags: ['gameVariant', gameId] },
   )()
 })
 
@@ -63,10 +65,14 @@ const getOtherGamesVariant = cache(
           },
         })
       },
-      ['otherGamesVariant', gameId.toLocaleString()],
+      ['otherGamesVariant', gameId.toLocaleString(), regionId.toLocaleString()],
       {
         revalidate: 86400,
-        tags: ['otherGamesVariant', gameId.toLocaleString()],
+        tags: [
+          'otherGamesVariant',
+          gameId.toLocaleString(),
+          regionId.toLocaleString(),
+        ],
       },
     )()
   },
@@ -75,12 +81,17 @@ const getOtherGamesVariant = cache(
 const getGameRegions = cache((id: number) => {
   return unstable_cache(
     () => {
-      return prisma.gameVariant.findFirst({
-        where: { id: +id },
+      return prisma.gameVariant.findMany({
+        where: { gameId: id },
         select: {
-          id: true,
-          region: true,
+          region: {
+            select: {
+              id: true,
+              code: true,
+            },
+          },
         },
+        distinct: ['regionId'],
       })
     },
     ['gameRegions', id.toLocaleString()],
@@ -90,31 +101,40 @@ const getGameRegions = cache((id: number) => {
 
 export default async function Game({
   params,
+  searchParams,
 }: {
   params: Promise<GamePageParams>
+  searchParams: Promise<{ region?: string }>
 }) {
   const { id } = await params
+  const { region } = await searchParams
 
-  const searchedGame = await getGameVariant(id)
-  if (!searchedGame) {
+  const gameRegions = await getGameRegions(+id)
+  const regions = gameRegions.map((gr) => gr.region)
+
+  let selectedRegion = regions[0].id
+  if (region) {
+    selectedRegion = +region
+  }
+
+  const foundGame = await getGameVariant(id, selectedRegion)
+
+  if (!foundGame) {
     redirect('/')
   }
 
   const otherGameConditions = await getOtherGamesVariant(
-    searchedGame.game.id,
-    searchedGame.condition.id,
-    searchedGame.region.id,
-    searchedGame.platform.id,
+    foundGame.game.id,
+    foundGame.condition.id,
+    foundGame.region.id,
+    foundGame.platform.id,
   )
 
-  const gameRegions = await getGameRegions(searchedGame.id)
-  console.log(gameRegions)
-
-  metadata.title = `${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name} price | RetroCoins!`
-  metadata.description = `Find the right price for ${searchedGame.game.title} ${searchedGame.condition.code} ${searchedGame.region.name}`
+  metadata.title = `${foundGame.game.title} price | RetroCoins!`
+  metadata.description = `Find the right price for ${foundGame.game.title}`
 
   return (
-    <div className="py-67.5 w-4xl mx-auto">
+    <div className="w-4xl mx-auto">
       <Link
         href="/"
         className="text-white font-black text-xl tracking-wider w-full h-full uppercase"
@@ -123,17 +143,17 @@ export default async function Game({
           Press start ► to find another retro-game!
         </div>
       </Link>
-      <div className="flex gap-8 items-start">
-        <div className="flex flex-col gap-4 w-2/3 ">
+      <div className="flex gap-8 items-start pb-12">
+        <div className="flex flex-col gap-4 w-1/2">
           <img
-            src={searchedGame?.game.image}
-            alt={`${searchedGame?.game.title} ${searchedGame?.condition.name} price`}
-            className="w-full rounded-sm shadow-lg"
+            src={foundGame?.game.image}
+            alt={`${foundGame?.game.title} ${foundGame?.condition.name} price`}
+            className="max-w-121 rounded-sm shadow-lg"
           />
           <hr className="w-full border border-blue-950" />
           <div className="flex flex-col gap-1">
             <p className="text-lg font-bold">Game description</p>
-            <p className="text-lg">{searchedGame?.game.description}</p>
+            <p className="text-lg">{foundGame?.game.description}</p>
           </div>
         </div>
         <div className="flex flex-col gap-6">
@@ -141,27 +161,29 @@ export default async function Game({
             <h1
               className={`font-black text-6xl text-[#2247b5] ${youngSerif.className}`}
             >
-              {searchedGame?.game.title}
+              {foundGame?.game.title}
             </h1>
             <GameInfo
-              platform={searchedGame.platform.name}
-              developers={searchedGame.game.developedBy}
-              firstReleaseDate={searchedGame?.game.firstRelease}
-              region={searchedGame?.region.name}
+              platform={foundGame.platform.name}
+              developers={foundGame.game.developedBy}
+              firstReleaseDate={foundGame?.game.firstRelease}
+              region={foundGame?.region.name}
             />
           </div>
+          <Divider hight="h-0.5" />
+          <Regions regions={regions} region={selectedRegion} />
           <Price
-            priceSnapshot={searchedGame?.priceSnapshots[0]!}
+            priceSnapshot={foundGame?.priceSnapshots[0]!}
             info={{
-              condition: searchedGame?.condition.code!,
-              region: searchedGame?.region.name!,
+              condition: foundGame?.condition.code!,
+              region: foundGame?.region.name!,
             }}
           />
           <hr className="w-full border border-blue-950" />
           {/* Prices by condition */}
           <div className="flex flex-col gap-1">
             <p className="text-lg font-bold">Other conditions for this game</p>
-            <div className="bg-blue-950 p-4 rounded-sm flex flex-col gap-2 text-white font-bold text-lg">
+            <div className="bg-blue-950 p-4 rounded-sm flex flex-col gap-4 text-white font-bold text-lg">
               {otherGameConditions?.map((o) =>
                 (o.priceSnapshots[0].itemsCount ?? 0) > 0 ? (
                   <div

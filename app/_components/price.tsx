@@ -2,7 +2,6 @@
 
 import { formatDistance } from 'date-fns'
 import { Young_Serif } from 'next/font/google'
-import { Tooltip } from 'react-tooltip'
 import { PriceSnapshot } from '../generated/prisma/client'
 
 const youngSerif = Young_Serif({
@@ -31,43 +30,40 @@ export function Price(props: PriceProps) {
             shadow-lg
             relative"
       >
+        <p className="text-xs tracking-widest uppercase text-blue-300 mb-2">
+          Real market price
+        </p>
         <div className="absolute inset-1 border border-blue-300 pointer-events-none"></div>
-        <div className="h-2 bg-blue-950 mb-4"></div>
-        <p className="text-xs tracking-widest uppercase text-blue-300">
-          Market price
+        <div className="h-2 bg-blue-950 mb-2"></div>
+        <p className="text-sm text-blue-300">
+          Price for <span className="font-bold">CIB</span> condition
         </p>
         <div className="flex flex-col gap-4">
           <p
-            className={`text-8xl font-bold mt-2 ${youngSerif.className} price`}
+            className={`text-8xl font-bold mt-2 ${youngSerif.className} relative`}
           >
-            {props.priceSnapshot.price} {currency}
+            {props.priceSnapshot.price} {currency}{' '}
+            <span className="text-lg absolute">*</span>
           </p>
-          <p>
+          <p className="text-sm">
             Most sales: {props.priceSnapshot.minPrice} {currency} -{' '}
             {props.priceSnapshot.maxPrice} {currency}
           </p>
         </div>
         <div className="mt-4 opacity-90">
-          <p>Based on {props.priceSnapshot.itemsCount} tracked sales</p>
+          <p>
+            Based on{' '}
+            <span className="font-bold">{props.priceSnapshot.itemsCount}</span>{' '}
+            tracked sales
+          </p>
           <hr className="my-1 border border-blue-300" />
-          <p className="text-sm">Last update {lastUpdate}</p>
+          <p className="text-xs">Last update {lastUpdate}</p>
         </div>
       </div>
-      <Tooltip anchorSelect=".price" place="top">
-        Prices are calculated using the median of recent sales. <br /> Extreme
+      <p className="text-sm mt-2">
+        *Prices are calculated using the median of recent sales. <br /> Extreme
         low and high values are removed to avoid distortions.
-      </Tooltip>
-      <div className="flex gap-1">
-        <button className="bg-[#2247b5] text-white p-2 rounded-sm border-2 border-blue-950 cursor-pointer">
-          PAL
-        </button>
-        <button className="bg-white text-[#2247b5] p-2 rounded-sm border-2 border-blue-950 cursor-pointer">
-          NTSC
-        </button>
-        <button className="bg-white text-[#2247b5] p-2 rounded-sm border-2 border-blue-950 cursor-pointer">
-          JAP
-        </button>
-      </div>
+      </p>
     </div>
   )
 }

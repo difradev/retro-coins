@@ -22,7 +22,11 @@ import { ConditionCode, RegionCode } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
 import { getGamePrice } from '@/app/lib/utils/get-game-price'
 import { getGameInfoFromSS } from '@/app/lib/utils/get-game.info'
-import { getPlatformCode, normalizeGameTitle } from '@/app/lib/utils/utils'
+import {
+  getPlatformCode,
+  normalizeGameTitle,
+  SS_REGIONS_CODE,
+} from '@/app/lib/utils/utils'
 import { NextResponse } from 'next/server'
 
 const CONDITIONS_AND_REGIONS = [
@@ -32,9 +36,9 @@ const CONDITIONS_AND_REGIONS = [
   { condition: 'CIB', region: 'NTSC' },
   { condition: 'SEALED', region: 'NTSC' },
   { condition: 'LOOSE', region: 'NTSC' },
-  { condition: 'CIB', region: 'JAP' },
-  { condition: 'SEALED', region: 'JAP' },
-  { condition: 'LOOSE', region: 'JAP' },
+  { condition: 'CIB', region: 'NTSC_J' },
+  { condition: 'SEALED', region: 'NTSC_J' },
+  { condition: 'LOOSE', region: 'NTSC_J' },
 ] as { condition: ConditionCode; region: RegionCode }[]
 
 let gamesAdded = 0
@@ -136,6 +140,7 @@ async function getGameInfoAndPrice(
     `[getGameInfoAndPrice] Parsed - normalized: ${normalizedTitle}, platform: ${platformCode}`,
   )
 
+  // Info could be get from ScreenScraper or IGDB
   const gameInfo = await getGameInfoFromSS(normalizedTitle, platformCode)
 
   if (!gameInfo) {
@@ -210,7 +215,7 @@ async function getGameInfoAndPrice(
           title: gameName,
           slug: normalizedTitle,
           firstRelease: releaseYear!,
-          image: cover!,
+          image: cover[0].url,
           developedBy: involvedCompanies!,
           description: summary!,
         },
@@ -236,6 +241,9 @@ async function getGameInfoAndPrice(
               platformId: platform.id,
               conditionId: condition.id,
               regionId: region.id,
+              variantCover: cover.find(
+                (c) => SS_REGIONS_CODE[c.region] === region.code,
+              )?.url!,
             },
           })
 

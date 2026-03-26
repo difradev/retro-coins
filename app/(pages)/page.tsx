@@ -15,7 +15,7 @@ export default async function Home() {
   const trendingSearches = await getTrendingGameSearches()
 
   return (
-    <div className="h-full flex flex-col items-center gap-6 w-4xl mx-auto">
+    <div className="h-full flex flex-col items-center gap-6 w-4xl mx-auto justify-center">
       <Hero />
       <Searchbar />
       {/* <Divider hight="h-2" /> */}

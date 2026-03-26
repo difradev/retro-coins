@@ -1,6 +1,11 @@
 import { IGDBGame } from '../types/IGDBGame'
 import { Jeux, SSGame } from '../types/SSGame'
-import { IGDB_REGIONS, SS_PLATFORM_CODE, SS_REGIONS_CODE } from './utils'
+import {
+  allowRegionsSS,
+  IGDB_REGIONS,
+  SS_PLATFORM_CODE,
+  SS_REGIONS_CODE,
+} from './utils'
 
 const IGDB_ENDPOINT = process.env.IGDB_ENDPOINT
 const TWITCH_OAUTH_URL = process.env.TWITCH_OAUTH_URL
@@ -8,10 +13,15 @@ const TWITCH_API_CLIENT_ID = process.env.TWITCH_API_CLIENT_ID
 const TWITCH_API_SECRET = process.env.TWITCH_API_SECRET
 
 const SCREENSCRAPER_GAME_ENDPOINT = process.env.SCREENSCRAPER_GAME_ENDPOINT
+const SCREENSCRAPER_DEVID = process.env.SCREENSCRAPER_DEVID
+const SCREENSCRAPER_DEVPASSWORD = process.env.SCREENSCRAPER_DEVPASSWORD
 
 export type GameInfo = {
   name: string
-  cover: string | undefined
+  cover: {
+    url: string
+    region: 'eu' | 'jp' | 'us'
+  }[]
   releaseYear?: string
   involvedCompanies: string | undefined
   summary: string | undefined
@@ -30,7 +40,7 @@ let expiryTwitchTokenTimestamp: number
 /**
  * Get token from Twitch (if is not already present) and retrieve game info from IGDB.
  * @param title name (slug) of the game
- * @returns IGDB Game Object
+ * @returns GameInfo Object
  */
 export async function getGameInfoFromIGDB(title: string): Promise<GameInfo> {
   try {
@@ -70,7 +80,7 @@ export async function getGameInfoFromIGDB(title: string): Promise<GameInfo> {
     )
     return {
       name: gameInfo.name,
-      cover: gameInfo.cover.image_id,
+      cover: [{ url: gameInfo.cover.image_id, region: 'eu' }],
       releaseYear: String(
         new Date(+gameInfo.first_release_date * 1000).getFullYear(),
       ),
@@ -89,6 +99,12 @@ export async function getGameInfoFromIGDB(title: string): Promise<GameInfo> {
   }
 }
 
+/**
+ * Get game info from ScreenScraper
+ * @param title  name (slug) of the game
+ * @param platform platformCode
+ * @returns GameInfo Object
+ */
 export async function getGameInfoFromSS(
   title: string,
   platform: string,
@@ -98,17 +114,23 @@ export async function getGameInfoFromSS(
     const normalizedTitle = title.replaceAll('-', ' ').trim()
 
     const gameInfoResponse = await fetch(
-      `${SCREENSCRAPER_GAME_ENDPOINT}?devid=difradev&devpassword=FHhunOSIar8&softname=retro-coins&output=JSON&recherche=${encodeURIComponent(normalizedTitle)}&systemeid=${systemId}`,
+      `${SCREENSCRAPER_GAME_ENDPOINT}?devid=${SCREENSCRAPER_DEVID}&devpassword=${SCREENSCRAPER_DEVPASSWORD}&softname=retro-coins&output=JSON&recherche=${encodeURIComponent(normalizedTitle)}&systemeid=${systemId}`,
     )
     const result = (await gameInfoResponse.json()) as SSGame
-    return findTheRightGame(normalizedTitle, result.response.jeux)
+    return filterGames(normalizedTitle, result.response.jeux)
   } catch (error) {
     console.error('Error while retrieving game info from ScreenScraper!', error)
     throw error
   }
 }
 
-function findTheRightGame(title: string, games: Jeux[]): GameInfo {
+/**
+ * This method help me to find the right game because SS research is not precise. So I'll get only the games that pass a regex test and I'll get the first one.
+ * @param title slug of the game
+ * @param games games get from SS
+ * @returns GameInfo Object
+ */
+function filterGames(title: string, games: Jeux[]): GameInfo {
   const escapedTitle = title.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   // Must start at the beginning of the string
   const includeTitleRegex = new RegExp(`^${escapedTitle}(\\b|$)`, 'i')
@@ -130,10 +152,17 @@ function findTheRightGame(title: string, games: Jeux[]): GameInfo {
     )
     .map((g) => ({
       name: g.noms[0].text,
-      cover: g.medias.find((m) => m.type === 'box-2D')?.url,
+      cover: g.medias
+        .filter(
+          (m) => m.type === 'box-2D' && allowRegionsSS.includes(m.region!),
+        )
+        .map((b) => ({
+          url: b.url,
+          region: b.region as 'eu' | 'jp' | 'us',
+        })), // TODO: Prevedere di salvare le cover per ogni regione (game variants)?
       regions: g.dates?.map((r) => SS_REGIONS_CODE[r.region]).filter(Boolean),
       involvedCompanies: g.developpeur?.text,
-      summary: g.synopsis.find((s) => s.langue === 'en')?.text,
+      summary: g.synopsis?.find((s) => s.langue === 'en')?.text,
       releaseYear: g.dates?.reduce(
         (oldest, d) => (d.text < oldest.text ? d : oldest),
         g.dates[0],

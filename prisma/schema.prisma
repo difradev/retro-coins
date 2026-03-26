@@ -19,11 +19,12 @@ model Game {
 }
 
 model GameVariant {
-  id          Int @id @default(autoincrement())
-  platformId  Int
-  gameId      Int
-  conditionId Int
-  regionId    Int
+  id           Int    @id @default(autoincrement())
+  variantCover String
+  platformId   Int
+  gameId       Int
+  conditionId  Int
+  regionId     Int
 
   game           Game            @relation(fields: [gameId], references: [id])
   platform       Platform        @relation(fields: [platformId], references: [id])
@@ -107,7 +108,7 @@ enum ConditionCode {
 enum RegionCode {
   PAL
   NTSC
-  JAP
+  NTSC_J
 }
 
 enum CurrencyCode {
