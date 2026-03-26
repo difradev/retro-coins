@@ -18,35 +18,24 @@
  *
  */
 
-import { ConditionCode } from '@/app/generated/prisma/enums'
+import { ConditionCode, RegionCode } from '@/app/generated/prisma/enums'
 import prisma from '@/app/lib/database/prisma'
-import { IGDBGame } from '@/app/lib/types/IGDBGame'
 import { getGamePrice } from '@/app/lib/utils/get-game-price'
-import { getGameInfoFromIGDB } from '@/app/lib/utils/get-game.info'
-import {
-  getPlatformCode,
-  getRegionCode,
-  normalizeGameTitle,
-} from '@/app/lib/utils/utils'
+import { getGameInfoFromSS } from '@/app/lib/utils/get-game.info'
+import { getPlatformCode, normalizeGameTitle } from '@/app/lib/utils/utils'
 import { NextResponse } from 'next/server'
 
-const CONDITIONS = ['CIB', 'SEALED', 'LOOSE'] as ConditionCode[]
-
-const platformFromSearchKey = new Set([
-  'gb',
-  'gba',
-  'nes',
-  'snes',
-  'sms',
-  'smd',
-])
-const gameConditionsFromSearchKey = new Set(['loose', 'cib', 'sealed'])
-const gameRegionsFromSearchKey = new Set(['pal', 'ntsc', 'jap'])
-const excludeWordsFromSearchKey = new Set([
-  ...gameRegionsFromSearchKey,
-  ...gameConditionsFromSearchKey,
-  ...platformFromSearchKey,
-])
+const CONDITIONS_AND_REGIONS = [
+  { condition: 'CIB', region: 'PAL' },
+  { condition: 'SEALED', region: 'PAL' },
+  { condition: 'LOOSE', region: 'PAL' },
+  { condition: 'CIB', region: 'NTSC' },
+  { condition: 'SEALED', region: 'NTSC' },
+  { condition: 'LOOSE', region: 'NTSC' },
+  { condition: 'CIB', region: 'JAP' },
+  { condition: 'SEALED', region: 'JAP' },
+  { condition: 'LOOSE', region: 'JAP' },
+] as { condition: ConditionCode; region: RegionCode }[]
 
 let gamesAdded = 0
 
@@ -72,9 +61,9 @@ export async function POST(): Promise<NextResponse<ResponseWrapper<null>>> {
   }
 
   try {
-    // Processo 5 giochi alla volta con 500 ms di ritardo ogni chiamata
+    // Processo 5 giochi alla volta con 1000 ms di ritardo ogni chiamata
     const gamesPerBatch = 5
-    const delayMs = 500
+    const delayMs = 1000
 
     gamesAdded = searchDemands.filter((s) => s.count7d >= 10).length
 
@@ -130,33 +119,26 @@ async function getGameInfoAndPrice(
     `[getGameInfoAndPrice] Processing: ${title} and searchId ${searchId}`,
   )
 
-  const normalizedTitle = normalizeGameTitle(title, excludeWordsFromSearchKey)
-  const conditionCode = 'CIB' as ConditionCode
+  const platformsFromDb = await prisma.platform.findMany({
+    select: {
+      code: true,
+    },
+  })
+  const normalizedPlatforms = platformsFromDb.map((p) =>
+    p.code.toLocaleLowerCase(),
+  )
+  const platformFromSearchKey = new Set(normalizedPlatforms)
+
+  const normalizedTitle = normalizeGameTitle(title, platformFromSearchKey)
   const platformCode = getPlatformCode(title, platformFromSearchKey)
-  const regionCode = getRegionCode(title, gameRegionsFromSearchKey)
 
   console.log(
-    `[getGameInfoAndPrice] Parsed - normalized: ${normalizedTitle}, platform: ${platformCode}, condition: ${conditionCode}, region: ${regionCode}`,
+    `[getGameInfoAndPrice] Parsed - normalized: ${normalizedTitle}, platform: ${platformCode}`,
   )
 
-  const gameAlreadyPresent = await prisma.game.findUnique({
-    where: { slug: normalizedTitle },
-  })
+  const gameInfo = await getGameInfoFromSS(normalizedTitle, platformCode)
 
-  let gameData: IGDBGame[] = []
-  if (gameAlreadyPresent) {
-    gameData[0] = {
-      name: gameAlreadyPresent.title,
-      cover: gameAlreadyPresent.image,
-      first_release_date: gameAlreadyPresent.year,
-      involved_companies: gameAlreadyPresent.developedBy,
-      summary: gameAlreadyPresent.description,
-    }
-  } else {
-    gameData = await getGameInfoFromIGDB(normalizedTitle)
-  }
-
-  if (!gameData.length) {
+  if (!gameInfo) {
     console.warn(
       `[getGameInfoAndPrice] Game not found on IGDB: ${normalizedTitle}`,
     )
@@ -167,23 +149,54 @@ async function getGameInfoAndPrice(
   const {
     name: gameName,
     cover,
-    first_release_date,
-    involved_companies,
+    regions,
+    involvedCompanies,
     summary,
-  } = gameData[0]
+    releaseYear,
+  } = gameInfo
 
-  // Get game price
-  const gamePrices = await Promise.allSettled(
-    CONDITIONS.map(async (c) => ({
-      conditionCode: c,
-      price: await getGamePrice({
-        title: normalizedTitle,
-        platformCode,
-        regionCode,
-        conditionCode: c,
+  // Get game price in small batches to avoid firing all 9 calls at once.
+  const gamePrices: PromiseSettledResult<{
+    conditionCode: ConditionCode
+    regionCode: RegionCode
+    price: Awaited<ReturnType<typeof getGamePrice>>
+  }>[] = []
+
+  const COMBINATIONS_PER_BATCH = 3
+  const COMBINATIONS_DELAY_MS = 300
+
+  const availableCombinations = CONDITIONS_AND_REGIONS.filter((cr) => {
+    return regions.includes(cr.region)
+  })
+
+  for (
+    let i = 0;
+    i < availableCombinations.length;
+    i += COMBINATIONS_PER_BATCH
+  ) {
+    const chunk = availableCombinations.slice(i, i + COMBINATIONS_PER_BATCH)
+
+    const chunkResult = await Promise.allSettled(
+      chunk.map(async (cr) => {
+        return {
+          conditionCode: cr.condition,
+          regionCode: cr.region,
+          price: await getGamePrice({
+            title: normalizedTitle,
+            platformCode,
+            regionCode: cr.region,
+            conditionCode: cr.condition,
+          }),
+        }
       }),
-    })),
-  )
+    )
+
+    gamePrices.push(...chunkResult)
+
+    if (i + COMBINATIONS_PER_BATCH < availableCombinations.length) {
+      await new Promise((resolve) => setTimeout(resolve, COMBINATIONS_DELAY_MS))
+    }
+  }
 
   // Write game only if there is some price!
   if (
@@ -192,29 +205,23 @@ async function getGameInfoAndPrice(
     gamePrices.some((gp) => gp.value.price.count > 0)
   ) {
     await prisma.$transaction(async (tx) => {
-      let game = gameAlreadyPresent
-
-      if (!game) {
-        game = await tx.game.create({
-          data: {
-            title: gameName,
-            slug: normalizedTitle,
-            year: new Date(+first_release_date * 1000).getFullYear(),
-            image: `https://images.igdb.com/igdb/image/upload/t_cover_big_2x/${typeof cover === 'string' ? cover : cover.image_id}.jpg`,
-            developedBy: Array.isArray(involved_companies)
-              ? involved_companies.map((i) => i.company.name).join(', ')
-              : '',
-            description: summary,
-          },
-        })
-      }
+      const game = await tx.game.create({
+        data: {
+          title: gameName,
+          slug: normalizedTitle,
+          firstRelease: releaseYear!,
+          image: cover!,
+          developedBy: involvedCompanies!,
+          description: summary!,
+        },
+      })
 
       await Promise.all(
         gamePrices.map(async (gp) => {
           const [platform, condition, region] = await Promise.all([
             tx.platform.findFirst({ where: { code: platformCode } }),
             tx.condition.findFirst({ where: { code: gp.value.conditionCode } }),
-            tx.region.findFirst({ where: { code: regionCode } }),
+            tx.region.findFirst({ where: { code: gp.value.regionCode } }),
           ])
 
           if (!platform || !condition || !region) {
@@ -240,7 +247,7 @@ async function getGameInfoAndPrice(
               maxPrice: gp.value.price.maxPrice,
               minPrice: gp.value.price.minPrice,
               itemsCount: gp.value.price.count,
-              currency: regionCode === 'PAL' ? 'EUR' : 'USD',
+              currency: gp.value.regionCode === 'PAL' ? 'EUR' : 'USD',
               lastUpdate: new Date(),
             },
           })

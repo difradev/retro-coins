@@ -11,7 +11,7 @@ model Game {
   id           Int           @id @default(autoincrement())
   title        String
   slug         String        @unique
-  year         Int
+  firstRelease String
   image        String
   description  String
   developedBy  String

@@ -5,7 +5,6 @@ import toast from 'react-hot-toast'
 import { searchGames } from '../actions/search-games'
 import { GameSuggestionResult } from '../api/game/suggestion/route'
 import { ErrorSearchGamesEnum } from '../lib/enums/ErrorSearchGamesEnum'
-import { Divider } from './divider'
 import { SearchbarSpinner } from './searchbar-spinner'
 
 const placeholderTextsMap = new Map<number, string>()
@@ -114,8 +113,6 @@ export default function Searchbar(): React.ReactNode {
         <div className="relative">
           <div className="w-full flex gap-2">
             <input type="hidden" name="search-input" ref={hiddenSearchBarRef} />
-            <input type="hidden" name="condition" value="CIB" />
-            <input type="hidden" name="region" value="PAL" />
             <label className="relative w-full">
               <input
                 autoComplete="off"

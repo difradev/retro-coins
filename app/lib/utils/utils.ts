@@ -1,5 +1,26 @@
 import { PlatformCode, RegionCode } from '@/app/generated/prisma/enums'
 
+export const SS_REGIONS_CODE: Record<string, string> = {
+  jp: 'JAP',
+  us: 'NTSC',
+  eu: 'PAL',
+}
+
+export const SS_PLATFORM_CODE: Record<string, number> = {
+  SMD: 1,
+}
+
+export const IGDB_REGIONS: Record<number, string> = {
+  1: 'PAL',
+  2: 'NTSC',
+  3: 'PAL',
+  4: 'PAL',
+  5: 'JAP',
+  6: 'PAL',
+  7: 'PAL',
+  8: 'PAL',
+}
+
 export function getPlatformCode(
   searchKey: string,
   platforms: Set<string>,

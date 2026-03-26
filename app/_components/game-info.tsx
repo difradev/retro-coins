@@ -1,5 +1,5 @@
 type GameInfoProps = {
-  release: number
+  firstReleaseDate: string
   platform: string
   developers: string
   region: string
@@ -15,7 +15,7 @@ export function GameInfo(props: GameInfoProps) {
       </div>
       <div className="flex gap-4">
         <p className="font-bold w-28">Year</p>
-        <p>{props.release}</p>
+        <p>{props.firstReleaseDate}</p>
       </div>
       <div className="flex gap-4">
         <p className="font-bold w-28">Condition</p>

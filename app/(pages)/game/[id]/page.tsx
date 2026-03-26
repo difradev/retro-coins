@@ -146,7 +146,7 @@ export default async function Game({
             <GameInfo
               platform={searchedGame.platform.name}
               developers={searchedGame.game.developedBy}
-              release={searchedGame?.game.year}
+              firstReleaseDate={searchedGame?.game.firstRelease}
               region={searchedGame?.region.name}
             />
           </div>

@@ -1,0 +1,3 @@
+-- AlterTable
+ALTER TABLE "Game" ALTER COLUMN "regions" SET NOT NULL,
+ALTER COLUMN "regions" SET DATA TYPE TEXT;
